@@ -21,9 +21,11 @@ export interface Analysis {
   companyName: string;
   inputType: 'file' | 'text' | 'name';
   inputSummary: string;
+  inputFull?: string;
   createdAt: string;
   updatedAt: string;
   status: 'processing' | 'complete' | 'error';
+  currentStep?: string;
   agents: AgentAnalysis[];
   gapQuestions: GapQuestion[];
   webEnrichment?: string;

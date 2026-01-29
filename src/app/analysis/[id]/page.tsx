@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { Analysis, AgentRole } from '@/lib/types';
 import AnalysisContent from '@/components/AnalysisContent';
@@ -21,29 +21,58 @@ export default function AnalysisPage() {
   const [activeTab, setActiveTab] = useState<AgentRole | 'gaps'>('summary');
   const [error, setError] = useState('');
 
+  const retryCount = useRef(0);
+  const processTriggered = useRef(false);
+
   const fetchAnalysis = useCallback(async () => {
     try {
       const res = await fetch(`/api/analysis/${id}`);
-      if (!res.ok) throw new Error('Not found');
+      if (!res.ok) {
+        retryCount.current++;
+        if (retryCount.current > 20) {
+          setError('Analysis not found. It may have failed to start — try again.');
+          return 'error';
+        }
+        return 'processing';
+      }
+      retryCount.current = 0;
       const data = await res.json();
       setAnalysis(data);
+
+      // Trigger processing if not yet started
+      if (data.status === 'processing' && !processTriggered.current) {
+        const hasRunning = data.agents?.some((a: { status: string }) => a.status === 'running');
+        const hasComplete = data.agents?.some((a: { status: string }) => a.status === 'complete');
+        if (!hasRunning && !hasComplete) {
+          processTriggered.current = true;
+          // Fire and forget — this endpoint runs the full analysis
+          fetch(`/api/analysis/${id}/process`, { method: 'POST' }).catch(console.error);
+        }
+      }
+
       return data.status;
     } catch {
-      setError('Analysis not found');
-      return 'error';
+      retryCount.current++;
+      if (retryCount.current > 20) {
+        setError('Analysis not found');
+        return 'error';
+      }
+      return 'processing';
     }
   }, [id]);
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
+    let active = true;
     const poll = async () => {
+      if (!active) return;
       const status = await fetchAnalysis();
-      if (status === 'processing') {
-        interval = setTimeout(poll, 3000);
+      if (status === 'processing' && active) {
+        interval = setTimeout(poll, 2000);
       }
     };
     poll();
-    return () => clearTimeout(interval);
+    return () => { active = false; clearTimeout(interval); };
   }, [fetchAnalysis]);
 
   if (error) {
@@ -97,19 +126,62 @@ export default function AnalysisPage() {
         </p>
       </div>
 
-      {/* Processing State */}
-      {isProcessing && analysis.agents.length === 0 && (
-        <div className="bg-bg-secondary border border-border rounded-xl p-12 text-center mb-8">
-          <div className="text-5xl mb-4 animate-bounce">🤖</div>
-          <h2 className="text-xl font-semibold mb-2">Analysis in Progress</h2>
-          <p className="text-text-secondary mb-6">Our AI agents are analyzing the company. This typically takes 30-90 seconds.</p>
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 max-w-2xl mx-auto">
-            {TAB_ORDER.map(tab => (
-              <div key={tab.role} className="bg-bg-tertiary rounded-lg p-3 animate-pulse-slow">
-                <div className="text-2xl mb-1">{tab.emoji}</div>
-                <div className="text-xs text-text-muted">{tab.label}</div>
-              </div>
-            ))}
+      {/* Processing State — Live Progress */}
+      {isProcessing && (
+        <div className="bg-bg-secondary border border-border rounded-xl p-8 mb-8">
+          <div className="flex items-center gap-3 mb-6">
+            <svg className="animate-spin h-5 w-5 text-accent" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+            <h2 className="text-lg font-semibold" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+              {analysis.currentStep || 'Analysis in progress...'}
+            </h2>
+          </div>
+          <div className="space-y-3">
+            {TAB_ORDER.map(tab => {
+              const agent = analysis.agents.find(a => a.role === tab.role);
+              const status = agent?.status || 'pending';
+              return (
+                <div key={tab.role} className="flex items-center gap-3 px-4 py-3 rounded-lg border border-border bg-white">
+                  <span className="text-xl">{tab.emoji}</span>
+                  <span className="flex-1 font-medium text-text-primary text-sm">{tab.label}</span>
+                  {status === 'complete' && (
+                    <span className="flex items-center gap-1 text-success text-sm font-medium">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+                      Done
+                    </span>
+                  )}
+                  {status === 'running' && (
+                    <span className="flex items-center gap-2 text-accent text-sm font-medium">
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-accent"></span>
+                      </span>
+                      Analyzing...
+                    </span>
+                  )}
+                  {status === 'pending' && (
+                    <span className="text-text-muted text-sm">Waiting</span>
+                  )}
+                  {status === 'error' && (
+                    <span className="text-danger text-sm font-medium">Failed</span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {/* Progress bar */}
+          <div className="mt-6">
+            <div className="h-1.5 bg-bg-tertiary rounded-full overflow-hidden">
+              <div
+                className="h-full bg-accent rounded-full transition-all duration-500"
+                style={{ width: `${(analysis.agents.filter(a => a.status === 'complete').length / 5) * 100}%` }}
+              />
+            </div>
+            <p className="text-text-muted text-xs mt-2 text-right">
+              {analysis.agents.filter(a => a.status === 'complete').length} of 5 agents complete
+            </p>
           </div>
         </div>
       )}

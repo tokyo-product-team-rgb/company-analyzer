@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
-import { Analysis, AgentRole } from '@/lib/types';
+import { Analysis } from '@/lib/types';
 import { saveAnalysis } from '@/lib/storage';
-import { runAgent, generateGapQuestions } from '@/lib/ai';
-import { enrichCompany } from '@/lib/web-search';
 
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 async function extractTextFromUrl(url: string, filename: string): Promise<string> {
   const res = await fetch(url);
@@ -24,7 +22,6 @@ async function extractTextFromUrl(url: string, filename: string): Promise<string
     }
   }
 
-  // Text-based files
   return buffer.toString('utf-8').slice(0, 50000);
 }
 
@@ -40,25 +37,22 @@ export async function POST(req: NextRequest) {
     let companyName = rawName || '';
     let inputText = text || '';
     let inputType: 'file' | 'text' | 'name' = 'name';
-    const fileNames: string[] = [];
 
-    // Process uploaded files (blob URLs)
+    // Process uploaded files (blob URLs) — extract text
     if (files && files.length > 0) {
       inputType = 'file';
-      const extractionPromises = files.map(async (f) => {
-        fileNames.push(f.name);
-        try {
-          return await extractTextFromUrl(f.url, f.name);
-        } catch (e) {
-          console.error(`Failed to extract text from ${f.name}:`, e);
-          return `[Could not extract text from ${f.name}]`;
-        }
-      });
-
-      const texts = await Promise.all(extractionPromises);
+      const texts = await Promise.all(
+        files.map(async (f) => {
+          try {
+            return await extractTextFromUrl(f.url, f.name);
+          } catch (e) {
+            console.error(`Failed to extract text from ${f.name}:`, e);
+            return `[Could not extract text from ${f.name}]`;
+          }
+        })
+      );
       const fileTexts = texts.map((t, i) => `--- File: ${files[i].name} ---\n${t}`).join('\n\n');
       inputText = inputText ? `${inputText}\n\n${fileTexts}` : fileTexts;
-
       if (!companyName && files.length > 0) {
         companyName = files[0].name.replace(/\.[^.]+$/, '');
       }
@@ -79,82 +73,34 @@ export async function POST(req: NextRequest) {
     const id = uuidv4();
     const now = new Date().toISOString();
 
+    // Save initial state with all agents pending
     const analysis: Analysis = {
       id,
       companyName,
       inputType,
       inputSummary: inputText.slice(0, 200),
+      inputFull: inputText, // store full text for processing endpoint
       createdAt: now,
       updatedAt: now,
       status: 'processing',
-      agents: [],
+      currentStep: 'Queued — starting analysis...',
+      agents: [
+        { role: 'researcher', title: 'PhD Researcher', emoji: '🎓', content: '', status: 'pending' },
+        { role: 'strategist', title: 'McKinsey Strategist', emoji: '📊', content: '', status: 'pending' },
+        { role: 'sector', title: 'Sector Expert', emoji: '🏭', content: '', status: 'pending' },
+        { role: 'financial', title: 'Financial Analyst', emoji: '💰', content: '', status: 'pending' },
+        { role: 'summary', title: 'Executive Summary', emoji: '📋', content: '', status: 'pending' },
+      ],
       gapQuestions: [],
       deepenHistory: [],
     };
 
     await saveAnalysis(analysis);
 
-    // Fire and forget background processing
-    processAnalysis(id, companyName, inputText).catch(console.error);
-
+    // Return ID immediately — frontend will call /api/analysis/[id]/process
     return NextResponse.json({ id, status: 'processing' });
   } catch (error) {
     console.error('Analyze error:', error);
     return NextResponse.json({ error: 'Analysis failed' }, { status: 500 });
-  }
-}
-
-async function processAnalysis(id: string, companyName: string, inputText: string) {
-  try {
-    const webContext = await enrichCompany(companyName);
-    const companyInfo = `Company: ${companyName}\n\n${inputText}`;
-
-    const roles: AgentRole[] = ['researcher', 'strategist', 'sector', 'financial'];
-    const results = await Promise.all(
-      roles.map(role => runAgent(role, companyInfo, webContext))
-    );
-
-    const otherAnalyses = results
-      .filter(r => r.status === 'complete')
-      .map(r => `## ${r.emoji} ${r.title}\n${r.content}`)
-      .join('\n\n---\n\n');
-
-    const summary = await runAgent('summary', companyInfo, webContext, otherAnalyses);
-    results.push(summary);
-
-    const gapQuestions = await generateGapQuestions(companyInfo, otherAnalyses);
-
-    const analysis: Analysis = {
-      id,
-      companyName,
-      inputType: 'text',
-      inputSummary: inputText.slice(0, 200),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      status: 'complete',
-      agents: results,
-      gapQuestions,
-      webEnrichment: webContext,
-      deepenHistory: [],
-    };
-
-    await saveAnalysis(analysis);
-  } catch (error) {
-    console.error('Background processing error:', error);
-    try {
-      const analysis: Analysis = {
-        id,
-        companyName,
-        inputType: 'text',
-        inputSummary: inputText.slice(0, 200),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        status: 'error',
-        agents: [],
-        gapQuestions: [],
-        deepenHistory: [],
-      };
-      await saveAnalysis(analysis);
-    } catch { /* last resort */ }
   }
 }
