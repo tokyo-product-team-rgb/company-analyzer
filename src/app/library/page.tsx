@@ -42,7 +42,7 @@ export default function LibraryPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-text-primary" style={{ fontFamily: "'Playfair Display', 'Didot', Georgia, serif" }}>
+          <h1 className="text-3xl font-bold text-text-primary" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
             Library
           </h1>
           <p className="text-text-secondary mt-1">
@@ -51,7 +51,7 @@ export default function LibraryPage() {
         </div>
         <a
           href="/"
-          className="px-4 py-2 bg-accent text-white rounded-none text-sm font-medium hover:bg-accent-hover transition-colors"
+          className="px-4 py-2 bg-accent text-white rounded-xl text-sm font-medium hover:bg-accent-hover transition-colors"
         >
           + New Analysis
         </a>
@@ -65,7 +65,7 @@ export default function LibraryPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search companies..."
-            className="w-full bg-bg-tertiary border border-border rounded-none px-4 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+            className="w-full bg-white border border-border rounded-xl px-4 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
           />
         </div>
         <div className="flex gap-2">
@@ -73,7 +73,7 @@ export default function LibraryPage() {
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`px-3 py-2 rounded-none text-xs font-medium border transition-colors capitalize ${
+              className={`px-3 py-2 rounded-xl text-xs font-medium border transition-colors capitalize ${
                 filter === f
                   ? 'bg-accent/15 border-accent/40 text-accent'
                   : 'bg-bg-secondary border-border text-text-secondary hover:border-border-bright'
@@ -101,9 +101,9 @@ export default function LibraryPage() {
 
       {/* Empty State */}
       {!loading && filtered.length === 0 && (
-        <div className="text-center py-16 bg-bg-secondary border border-border rounded-none">
+        <div className="text-center py-16 bg-bg-secondary border border-border rounded-xl">
           <div className="text-4xl mb-3">📚</div>
-          <h2 className="text-lg font-semibold text-text-primary mb-1" style={{ fontFamily: "'Playfair Display', 'Didot', Georgia, serif" }}>
+          <h2 className="text-lg font-semibold text-text-primary mb-1" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
             {search || filter !== 'all' ? 'No matching analyses' : 'Library is empty'}
           </h2>
           <p className="text-text-muted text-sm mb-4">
@@ -123,12 +123,12 @@ export default function LibraryPage() {
           {filtered.map(a => (
             <div
               key={a.id}
-              className="bg-bg-secondary border border-border rounded-none p-5 hover:border-border-bright transition-colors group"
+              className="bg-bg-secondary border border-border rounded-xl p-5 hover:border-border-bright transition-colors group"
             >
               <div className="flex items-start justify-between">
                 <a href={`/analysis/${a.id}`} className="flex-1 min-w-0">
                   <div className="flex items-center gap-3">
-                    <h3 className="text-lg font-semibold text-text-primary" style={{ fontFamily: "'Playfair Display', 'Didot', Georgia, serif" }}>
+                    <h3 className="text-lg font-semibold text-text-primary" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
                       {a.companyName}
                     </h3>
                     <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
@@ -151,13 +151,13 @@ export default function LibraryPage() {
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <a
                     href={`/analysis/${a.id}`}
-                    className="text-xs px-3 py-1.5 bg-accent/10 text-accent rounded-none hover:bg-accent/20 font-medium"
+                    className="text-xs px-3 py-1.5 bg-accent/10 text-accent rounded-xl hover:bg-accent/20 font-medium"
                   >
                     View
                   </a>
                   <button
                     onClick={() => handleDelete(a.id)}
-                    className="text-xs px-3 py-1.5 bg-danger/10 text-danger rounded-none hover:bg-danger/20 font-medium"
+                    className="text-xs px-3 py-1.5 bg-danger/10 text-danger rounded-xl hover:bg-danger/20 font-medium"
                   >
                     Delete
                   </button>

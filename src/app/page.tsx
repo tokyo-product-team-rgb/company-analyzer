@@ -176,17 +176,17 @@ export default function Home() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
       {/* Hero */}
-      <div className="text-center mb-16">
-        <h1 className="text-4xl md:text-6xl font-normal mb-6 text-text-primary tracking-tight italic" style={{ fontFamily: "'Playfair Display', 'Didot', Georgia, serif" }}>
+      <div className="text-center mb-12">
+        <h1 className="text-4xl md:text-5xl font-bold mb-4 text-text-primary tracking-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
           Company Analyzer
         </h1>
-        <p className="text-text-muted text-sm max-w-xl mx-auto leading-relaxed tracking-wide uppercase" style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 300, letterSpacing: '0.1em' }}>
-          Multi-agent intelligence · PhD · McKinsey · Sector · Financial
+        <p className="text-text-muted text-base max-w-2xl mx-auto leading-relaxed">
+          Multi-agent AI analysis — PhD Researcher, McKinsey Strategist, Sector Expert & Financial Analyst.
         </p>
       </div>
 
       {/* Input Card */}
-      <div className="bg-bg-secondary border border-border rounded-none p-8 mb-8">
+      <div className="bg-bg-secondary border border-border rounded-xl p-8 mb-8">
         {/* Company Name */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-text-secondary mb-2">Company Name</label>
@@ -195,7 +195,7 @@ export default function Home() {
             value={companyName}
             onChange={e => setCompanyName(e.target.value)}
             placeholder="e.g., Stripe, Toyota, SpaceX..."
-            className="w-full bg-bg-tertiary border border-border rounded-none px-4 py-3 text-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-text-muted transition-colors"
+            className="w-full bg-white border border-border rounded-xl px-4 py-3 text-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
           />
         </div>
 
@@ -214,7 +214,7 @@ export default function Home() {
             onChange={e => setText(e.target.value)}
             placeholder="Paste company description, pitch deck text, financial data, or any relevant information..."
             rows={6}
-            className="w-full bg-bg-tertiary border border-border rounded-none px-4 py-3 text-text-primary placeholder:text-text-muted focus:outline-none focus:border-text-muted transition-colors resize-y text-sm"
+            className="w-full bg-white border border-border rounded-xl px-4 py-3 text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors resize-y text-sm"
             style={{ fontFamily: 'var(--font-body)' }}
           />
         </div>
@@ -230,7 +230,7 @@ export default function Home() {
         <div>
           <label className="block text-sm font-medium text-text-secondary mb-2">Upload Files or Folders</label>
           <div
-            className={`border-2 border-dashed rounded-none p-8 text-center cursor-pointer transition-colors ${
+            className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
               dragOver ? 'border-accent bg-accent/5' : files.length > 0 ? 'border-success bg-success/5' : 'border-border hover:border-border-bright'
             }`}
             onClick={() => fileRef.current?.click()}
@@ -297,7 +297,7 @@ export default function Home() {
 
           {/* File list */}
           {files.length > 0 && (
-            <div className="mt-3 max-h-48 overflow-y-auto border border-border rounded-none divide-y divide-border">
+            <div className="mt-3 max-h-48 overflow-y-auto border border-border rounded-xl divide-y divide-border">
               {files.map((f, i) => (
                 <div key={i} className="flex items-center gap-3 px-3 py-2 text-sm">
                   <span className="text-text-muted flex-shrink-0">
@@ -331,15 +331,14 @@ export default function Home() {
 
         {/* Error */}
         {error && (
-          <div className="mt-4 p-3 bg-danger/10 border border-danger/30 rounded-none text-danger text-sm">{error}</div>
+          <div className="mt-4 p-3 bg-danger/10 border border-danger/30 rounded-xl text-danger text-sm">{error}</div>
         )}
 
         {/* Submit */}
         <button
           onClick={handleSubmit}
           disabled={loading || (!companyName && !text && files.length === 0)}
-          className="w-full mt-8 py-4 bg-text-primary hover:bg-accent-hover disabled:opacity-30 disabled:cursor-not-allowed text-bg-primary font-normal text-sm tracking-[0.15em] uppercase rounded-none transition-all"
-          style={{ fontFamily: "'JetBrains Mono', monospace" }}
+          className="w-full mt-6 py-4 bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-base rounded-xl transition-all" style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">
@@ -358,10 +357,10 @@ export default function Home() {
       {/* Recent Analyses */}
       {analyses.length > 0 && (
         <div>
-          <h2 className="text-xl font-semibold mb-4 text-text-secondary" style={{ fontFamily: "'Playfair Display', 'Didot', Georgia, serif" }}>Recent Analyses</h2>
+          <h2 className="text-xl font-semibold mb-4 text-text-secondary" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Recent Analyses</h2>
           <div className="grid gap-3">
             {analyses.map(a => (
-              <div key={a.id} className="bg-bg-secondary border border-border rounded-none p-4 hover:border-border-bright transition-colors flex items-center justify-between">
+              <div key={a.id} className="bg-bg-secondary border border-border rounded-xl p-4 hover:border-border-bright transition-colors flex items-center justify-between">
                 <a href={`/analysis/${a.id}`} className="flex-1 min-w-0">
                   <h3 className="font-medium text-text-primary">{a.companyName}</h3>
                   <p className="text-sm text-text-muted">{new Date(a.createdAt).toLocaleString()}</p>
