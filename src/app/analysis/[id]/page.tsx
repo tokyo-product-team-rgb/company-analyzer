@@ -95,7 +95,7 @@ export default function AnalysisPage() {
     return (
       <div className="max-w-4xl mx-auto px-4 py-12 text-center">
         <div className="text-6xl mb-4">🔍</div>
-        <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Analysis Not Found</h1>
+        <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: "'Playfair Display', 'Didot', Georgia, serif" }}>Analysis Not Found</h1>
         <p className="text-text-secondary mb-6">This analysis doesn&apos;t exist or may have failed to start.</p>
         <a href="/" className="text-accent hover:text-accent-hover font-medium">← Back to Home</a>
       </div>
@@ -124,11 +124,11 @@ export default function AnalysisPage() {
       <div className="max-w-3xl mx-auto px-4 py-8">
         <div className="mb-8">
           <a href="/" className="text-text-muted hover:text-text-secondary text-sm">← Back</a>
-          <h1 className="text-3xl font-bold mt-3" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>{analysis.companyName}</h1>
+          <h1 className="text-3xl font-bold mt-3" style={{ fontFamily: "'Playfair Display', 'Didot', Georgia, serif" }}>{analysis.companyName}</h1>
         </div>
-        <div className="bg-bg-secondary border border-danger/30 rounded-xl p-8 text-center">
+        <div className="bg-bg-secondary border border-danger/30 rounded-none p-8 text-center">
           <div className="text-4xl mb-3">⚠️</div>
-          <h2 className="text-lg font-semibold text-text-primary mb-2" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+          <h2 className="text-lg font-semibold text-text-primary mb-2" style={{ fontFamily: "'Playfair Display', 'Didot', Georgia, serif" }}>
             Analysis Failed
           </h2>
           <p className="text-text-secondary text-sm mb-2">
@@ -138,10 +138,10 @@ export default function AnalysisPage() {
             This can happen if the AI service is temporarily unavailable. Try submitting again.
           </p>
           <div className="flex items-center justify-center gap-3">
-            <a href="/" className="px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-hover transition-colors">
+            <a href="/" className="px-4 py-2 bg-accent text-white rounded-none text-sm font-medium hover:bg-accent-hover transition-colors">
               Try Again
             </a>
-            <a href="/library" className="px-4 py-2 bg-bg-tertiary text-text-secondary rounded-lg text-sm font-medium hover:text-text-primary transition-colors">
+            <a href="/library" className="px-4 py-2 bg-bg-tertiary text-text-secondary rounded-none text-sm font-medium hover:text-text-primary transition-colors">
               Library
             </a>
           </div>
@@ -157,7 +157,7 @@ export default function AnalysisPage() {
         {/* Header */}
         <div className="mb-8">
           <a href="/" className="text-text-muted hover:text-text-secondary text-sm">← Back</a>
-          <h1 className="text-3xl font-bold mt-3" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>{analysis.companyName}</h1>
+          <h1 className="text-3xl font-bold mt-3" style={{ fontFamily: "'Playfair Display', 'Didot', Georgia, serif" }}>{analysis.companyName}</h1>
           <p className="text-text-secondary mt-1 text-sm">
             {analysis.inputType === 'file' ? '📄 File upload' : analysis.inputType === 'text' ? '📝 Text input' : '🏢 Name only'}
             {' · '}Started {new Date(analysis.createdAt).toLocaleTimeString()}
@@ -165,7 +165,7 @@ export default function AnalysisPage() {
         </div>
 
         {/* Pipeline Steps */}
-        <div className="bg-bg-secondary border border-border rounded-xl p-6 md:p-8 mb-6">
+        <div className="bg-bg-secondary border border-border rounded-none p-6 md:p-8 mb-6">
           <h2 className="text-sm font-semibold text-text-muted uppercase tracking-wider mb-6">Analysis Pipeline</h2>
           <div className="space-y-0">
             {PIPELINE_STEPS.map((step, i) => {
@@ -178,7 +178,7 @@ export default function AnalysisPage() {
                   <div className="flex flex-col items-center">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border-2 ${
                       isComplete ? 'bg-success border-success text-white' :
-                      isCurrent ? 'bg-white border-accent text-accent' :
+                      isCurrent ? 'bg-bg-tertiary border-accent text-accent' :
                       'bg-bg-tertiary border-border text-text-muted'
                     }`}>
                       {isComplete ? (
@@ -212,17 +212,17 @@ export default function AnalysisPage() {
         </div>
 
         {/* Agent Status Cards */}
-        <div className="bg-bg-secondary border border-border rounded-xl p-6 md:p-8">
+        <div className="bg-bg-secondary border border-border rounded-none p-6 md:p-8">
           <h2 className="text-sm font-semibold text-text-muted uppercase tracking-wider mb-4">Expert Agents</h2>
           <div className="space-y-3">
             {TAB_ORDER.map(tab => {
               const agent = analysis.agents.find(a => a.role === tab.role);
               const status = agent?.status || 'pending';
               return (
-                <div key={tab.role} className={`flex items-start gap-3 px-4 py-3 rounded-lg border transition-colors ${
-                  status === 'running' ? 'border-accent/40 bg-white' :
-                  status === 'complete' ? 'border-success/30 bg-white' :
-                  'border-border bg-white/60'
+                <div key={tab.role} className={`flex items-start gap-3 px-4 py-3 rounded-none border transition-colors ${
+                  status === 'running' ? 'border-accent/40 bg-bg-tertiary' :
+                  status === 'complete' ? 'border-success/30 bg-bg-tertiary' :
+                  'border-border bg-bg-tertiary/60'
                 }`}>
                   <span className="text-xl mt-0.5">{tab.emoji}</span>
                   <div className="flex-1 min-w-0">
@@ -282,7 +282,7 @@ export default function AnalysisPage() {
       {/* Header */}
       <div className="mb-8">
         <a href="/" className="text-text-muted hover:text-text-secondary text-sm">← Back</a>
-        <h1 className="text-3xl font-bold mt-3" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>{analysis.companyName}</h1>
+        <h1 className="text-3xl font-bold mt-3" style={{ fontFamily: "'Playfair Display', 'Didot', Georgia, serif" }}>{analysis.companyName}</h1>
         <p className="text-text-secondary mt-1">
           {analysis.inputType === 'file' ? '📄 File upload' : analysis.inputType === 'text' ? '📝 Text input' : '🏢 Name only'}
           {' · '}
@@ -303,7 +303,7 @@ export default function AnalysisPage() {
                 <button
                   key={tab.role}
                   onClick={() => setActiveTab(tab.role)}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-lg text-left whitespace-nowrap transition-colors ${
+                  className={`flex items-center gap-2 px-4 py-3 rounded-none text-left whitespace-nowrap transition-colors ${
                     isActive
                       ? 'bg-accent/15 border border-accent/40 text-accent'
                       : 'bg-bg-secondary border border-border hover:border-border-bright text-text-secondary'
@@ -320,7 +320,7 @@ export default function AnalysisPage() {
             {analysis.gapQuestions.length > 0 && (
               <button
                 onClick={() => setActiveTab('gaps' as AgentRole)}
-                className={`flex items-center gap-2 px-4 py-3 rounded-lg text-left whitespace-nowrap transition-colors ${
+                className={`flex items-center gap-2 px-4 py-3 rounded-none text-left whitespace-nowrap transition-colors ${
                   activeTab === ('gaps' as AgentRole)
                     ? 'bg-accent/15 border border-accent/40 text-accent'
                     : 'bg-bg-secondary border border-border hover:border-border-bright text-text-secondary'
@@ -338,7 +338,7 @@ export default function AnalysisPage() {
 
         {/* Content area */}
         <div className="flex-1 min-w-0">
-          <div className="bg-bg-secondary border border-border rounded-xl p-6 md:p-8">
+          <div className="bg-bg-secondary border border-border rounded-none p-6 md:p-8">
             {activeTab === ('gaps' as AgentRole) ? (
               <GapAnalysis
                 questions={analysis.gapQuestions}
@@ -350,7 +350,7 @@ export default function AnalysisPage() {
                 <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border">
                   <span className="text-3xl">{activeAgent.emoji}</span>
                   <div>
-                    <h2 className="text-xl font-bold" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>{activeAgent.title}</h2>
+                    <h2 className="text-xl font-bold" style={{ fontFamily: "'Playfair Display', 'Didot', Georgia, serif" }}>{activeAgent.title}</h2>
                     <p className="text-text-muted text-sm">
                       {activeAgent.status === 'complete' ? 'Analysis complete' : activeAgent.status}
                     </p>

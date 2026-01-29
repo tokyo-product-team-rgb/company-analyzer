@@ -1,23 +1,24 @@
 @import "tailwindcss";
 
 @theme {
-  --color-bg-primary: #FFF1E5;
-  --color-bg-secondary: #ffffff;
-  --color-bg-tertiary: #F2DFCE;
-  --color-border: #E0CCBB;
-  --color-border-bright: #C9AD97;
-  --color-text-primary: #33302E;
-  --color-text-secondary: #66605C;
-  --color-text-muted: #99918B;
-  --color-accent: #0D7680;
-  --color-accent-hover: #0A5E66;
-  --color-success: #09A470;
-  --color-warning: #F2A90B;
-  --color-danger: #CC0000;
-  --font-sans: "Georgia", "Times New Roman", ui-serif, serif;
-  --font-mono: "Courier New", ui-monospace, monospace;
-  --font-headline: "Georgia", "Times New Roman", ui-serif, serif;
-  --font-body: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --color-bg-primary: #0f0f0f;
+  --color-bg-secondary: #1a1a1a;
+  --color-bg-tertiary: #242424;
+  --color-border: #2e2e2e;
+  --color-border-bright: #444444;
+  --color-text-primary: #f0f0f0;
+  --color-text-secondary: #999999;
+  --color-text-muted: #666666;
+  --color-accent: #cccccc;
+  --color-accent-hover: #ffffff;
+  --color-success: #6fcc6f;
+  --color-warning: #ccaa44;
+  --color-danger: #cc4444;
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: "SF Mono", "Fira Code", "JetBrains Mono", ui-monospace, monospace;
+  --font-headline: "Didot", "Bodoni MT", "Playfair Display", "Times New Roman", serif;
+  --font-body: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-nav: "SF Mono", "Fira Code", ui-monospace, monospace;
 }
 
 body {
@@ -25,6 +26,7 @@ body {
   color: var(--color-text-primary);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -32,25 +34,26 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Custom scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--color-bg-tertiary); }
-::-webkit-scrollbar-thumb { background: var(--color-border-bright); border-radius: 3px; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--color-bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--color-border-bright); border-radius: 2px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--color-text-muted); }
 
 /* Markdown-like content styling */
-.analysis-content h1 { font-size: 1.75rem; font-weight: 700; margin: 2rem 0 0.75rem; color: var(--color-text-primary); font-family: var(--font-headline); letter-spacing: -0.01em; }
-.analysis-content h2 { font-size: 1.35rem; font-weight: 700; margin: 1.75rem 0 0.5rem; color: var(--color-text-primary); font-family: var(--font-headline); border-bottom: 1px solid var(--color-border); padding-bottom: 0.4rem; }
-.analysis-content h3 { font-size: 1.1rem; font-weight: 600; margin: 1.25rem 0 0.5rem; color: var(--color-text-secondary); font-family: var(--font-headline); }
-.analysis-content p { margin: 0.6rem 0; line-height: 1.8; font-size: 1rem; }
-.analysis-content ul { list-style: disc; padding-left: 1.5rem; margin: 0.5rem 0; }
+.analysis-content h1 { font-size: 1.75rem; font-weight: 400; margin: 2rem 0 0.75rem; color: var(--color-text-primary); font-family: var(--font-headline); letter-spacing: -0.02em; font-style: italic; }
+.analysis-content h2 { font-size: 1.25rem; font-weight: 400; margin: 1.75rem 0 0.5rem; color: var(--color-text-primary); font-family: var(--font-headline); border-bottom: 1px solid var(--color-border); padding-bottom: 0.5rem; letter-spacing: -0.01em; }
+.analysis-content h3 { font-size: 0.85rem; font-weight: 400; margin: 1.25rem 0 0.5rem; color: var(--color-text-muted); font-family: var(--font-nav); text-transform: uppercase; letter-spacing: 0.12em; }
+.analysis-content p { margin: 0.6rem 0; line-height: 1.8; font-size: 0.95rem; color: var(--color-text-secondary); }
+.analysis-content ul { list-style: none; padding-left: 0; margin: 0.5rem 0; }
+.analysis-content ul li { margin: 0.4rem 0; line-height: 1.7; padding-left: 1rem; border-left: 1px solid var(--color-border); color: var(--color-text-secondary); }
 .analysis-content ol { list-style: decimal; padding-left: 1.5rem; margin: 0.5rem 0; }
-.analysis-content li { margin: 0.3rem 0; line-height: 1.7; }
-.analysis-content strong { color: var(--color-text-primary); font-weight: 700; }
-.analysis-content blockquote { border-left: 4px solid var(--color-accent); padding-left: 1.25rem; margin: 1rem 0; color: var(--color-text-secondary); font-style: italic; font-family: var(--font-headline); }
-.analysis-content table { width: 100%; border-collapse: collapse; margin: 1.25rem 0; font-family: var(--font-body); font-size: 0.9rem; }
-.analysis-content th { background: var(--color-bg-tertiary); padding: 0.6rem 0.75rem; text-align: left; border-bottom: 2px solid var(--color-text-primary); font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
-.analysis-content td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--color-border); }
-.analysis-content code { background: var(--color-bg-tertiary); padding: 0.15rem 0.4rem; border-radius: 2px; font-family: var(--font-mono); font-size: 0.85em; }
+.analysis-content ol li { margin: 0.3rem 0; line-height: 1.7; color: var(--color-text-secondary); }
+.analysis-content strong { color: var(--color-text-primary); font-weight: 500; }
+.analysis-content blockquote { border-left: 1px solid var(--color-text-muted); padding-left: 1.5rem; margin: 1.25rem 0; color: var(--color-text-muted); font-style: italic; font-family: var(--font-headline); font-size: 1.1rem; }
+.analysis-content table { width: 100%; border-collapse: collapse; margin: 1.25rem 0; font-family: var(--font-nav); font-size: 0.8rem; }
+.analysis-content th { padding: 0.6rem 0.75rem; text-align: left; border-bottom: 1px solid var(--color-text-muted); font-weight: 400; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.15em; color: var(--color-text-muted); }
+.analysis-content td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--color-border); color: var(--color-text-secondary); }
+.analysis-content code { background: var(--color-bg-tertiary); padding: 0.15rem 0.4rem; border-radius: 2px; font-family: var(--font-mono); font-size: 0.85em; color: var(--color-text-primary); }
 
 @keyframes pulse-slow {
   0%, 100% { opacity: 1; }
