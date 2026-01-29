@@ -327,23 +327,30 @@ export default function Home() {
           <h2 className="text-xl font-semibold mb-4 text-text-secondary" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Recent Analyses</h2>
           <div className="grid gap-3">
             {analyses.map(a => (
-              <a
-                key={a.id}
-                href={`/analysis/${a.id}`}
-                className="bg-bg-secondary border border-border rounded-lg p-4 hover:border-border-bright transition-colors flex items-center justify-between"
-              >
-                <div>
+              <div key={a.id} className="bg-bg-secondary border border-border rounded-lg p-4 hover:border-border-bright transition-colors flex items-center justify-between">
+                <a href={`/analysis/${a.id}`} className="flex-1 min-w-0">
                   <h3 className="font-medium text-text-primary">{a.companyName}</h3>
                   <p className="text-sm text-text-muted">{new Date(a.createdAt).toLocaleString()}</p>
+                </a>
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs px-2 py-1 rounded-full ${
+                    a.status === 'complete' ? 'bg-success/20 text-success' :
+                    a.status === 'processing' ? 'bg-warning/20 text-warning' :
+                    'bg-danger/20 text-danger'
+                  }`}>
+                    {a.status}
+                  </span>
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      await fetch(`/api/analysis/${a.id}`, { method: 'DELETE' });
+                      setAnalyses(prev => prev.filter(x => x.id !== a.id));
+                    }}
+                    className="text-text-muted hover:text-danger text-xs p-1"
+                    title="Delete"
+                  >✕</button>
                 </div>
-                <span className={`text-xs px-2 py-1 rounded-full ${
-                  a.status === 'complete' ? 'bg-success/20 text-success' :
-                  a.status === 'processing' ? 'bg-warning/20 text-warning' :
-                  'bg-danger/20 text-danger'
-                }`}>
-                  {a.status}
-                </span>
-              </a>
+              </div>
             ))}
           </div>
         </div>

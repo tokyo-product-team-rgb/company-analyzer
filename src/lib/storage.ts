@@ -63,6 +63,21 @@ export async function saveAnalysis(analysis: Analysis): Promise<void> {
   await saveIndex(index);
 }
 
+export async function deleteAnalysis(id: string): Promise<void> {
+  // Delete the analysis blob
+  try {
+    const blobs = await list({ prefix: analysisKey(id) });
+    for (const blob of blobs.blobs) {
+      await del(blob.url);
+    }
+  } catch { /* ignore */ }
+
+  // Remove from index
+  const index = await getIndex();
+  index.analyses = index.analyses.filter(a => a.id !== id);
+  await saveIndex(index);
+}
+
 export async function uploadFile(id: string, filename: string, data: Buffer): Promise<string> {
   const blob = await put(`uploads/${id}/${filename}`, data, { access: 'public' });
   return blob.url;
