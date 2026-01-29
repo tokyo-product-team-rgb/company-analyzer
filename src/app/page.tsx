@@ -76,7 +76,7 @@ export default function Home() {
     <div className="max-w-4xl mx-auto px-4 py-12">
       {/* Hero */}
       <div className="text-center mb-12">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-accent to-purple-400 bg-clip-text text-transparent">
+        <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-accent to-indigo-500 bg-clip-text text-transparent">
           Company Analyzer
         </h1>
         <p className="text-text-secondary text-lg max-w-2xl mx-auto">
