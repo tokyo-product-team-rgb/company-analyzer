@@ -95,7 +95,7 @@ export default function AnalysisPage() {
     return (
       <div className="max-w-4xl mx-auto px-4 py-12 text-center">
         <div className="text-6xl mb-4">🔍</div>
-        <h1 className="text-2xl font-bold mb-2" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Analysis Not Found</h1>
+        <h1 className="text-2xl font-bold mb-2">Analysis Not Found</h1>
         <p className="text-text-secondary mb-6">This analysis doesn&apos;t exist or may have failed to start.</p>
         <a href="/" className="text-accent hover:text-accent-hover font-medium">← Back to Home</a>
       </div>
@@ -104,7 +104,7 @@ export default function AnalysisPage() {
 
   if (!analysis) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-16 text-center">
+      <div className="max-w-3xl mx-auto px-5 py-16 text-center">
         <svg className="animate-spin h-8 w-8 text-accent mx-auto mb-4" viewBox="0 0 24 24">
           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
@@ -121,14 +121,14 @@ export default function AnalysisPage() {
   // ── ERROR VIEW ──
   if (analysis.status === 'error') {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="max-w-3xl mx-auto px-5 py-8">
         <div className="mb-8">
           <a href="/" className="text-text-muted hover:text-text-secondary text-sm">← Back</a>
-          <h1 className="text-3xl font-bold mt-3" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>{analysis.companyName}</h1>
+          <h1 className="text-3xl font-bold mt-3">{analysis.companyName}</h1>
         </div>
         <div className="bg-bg-secondary border border-danger/30 rounded-xl p-8 text-center">
           <div className="text-4xl mb-3">⚠️</div>
-          <h2 className="text-lg font-semibold text-text-primary mb-2" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+          <h2 className="text-lg font-semibold text-text-primary mb-2">
             Analysis Failed
           </h2>
           <p className="text-text-secondary text-sm mb-2">
@@ -153,11 +153,11 @@ export default function AnalysisPage() {
   // ── PROCESSING VIEW ──
   if (isProcessing) {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-8">
+      <div className="max-w-3xl mx-auto px-5 py-8">
         {/* Header */}
         <div className="mb-8">
           <a href="/" className="text-text-muted hover:text-text-secondary text-sm">← Back</a>
-          <h1 className="text-3xl font-bold mt-3" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>{analysis.companyName}</h1>
+          <h1 className="text-3xl font-bold mt-3">{analysis.companyName}</h1>
           <p className="text-text-secondary mt-1 text-sm">
             {analysis.inputType === 'file' ? '📄 File upload' : analysis.inputType === 'text' ? '📝 Text input' : '🏢 Name only'}
             {' · '}Started {new Date(analysis.createdAt).toLocaleTimeString()}
@@ -278,67 +278,55 @@ export default function AnalysisPage() {
 
   // ── COMPLETE VIEW ──
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
+    <div className="max-w-3xl mx-auto px-5 py-8">
       {/* Header */}
-      <div className="mb-8">
-        <a href="/" className="text-text-muted hover:text-text-secondary text-sm">← Back</a>
-        <h1 className="text-3xl font-bold mt-3" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>{analysis.companyName}</h1>
-        <p className="text-text-secondary mt-1">
-          {analysis.inputType === 'file' ? '📄 File upload' : analysis.inputType === 'text' ? '📝 Text input' : '🏢 Name only'}
-          {' · '}
-          {new Date(analysis.createdAt).toLocaleString()}
+      <div className="mb-6">
+        <a href="/library" className="text-text-muted hover:text-text-primary text-sm">← Back</a>
+        <h1 className="text-2xl font-bold mt-3">{analysis.companyName}</h1>
+        <p className="text-text-muted text-sm mt-1">
+          {new Date(analysis.createdAt).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
           {analysis.deepenHistory.length > 0 && ` · Deepened ${analysis.deepenHistory.length}x`}
         </p>
       </div>
 
-      {/* Tabs + Content */}
-      <div className="flex flex-col lg:flex-row gap-6">
-        {/* Tab sidebar */}
-        <div className="lg:w-56 flex-shrink-0">
-          <div className="lg:sticky lg:top-20 flex lg:flex-col gap-2 overflow-x-auto pb-2 lg:pb-0">
-            {TAB_ORDER.map(tab => {
-              const agent = analysis.agents.find(a => a.role === tab.role);
-              const isActive = activeTab === tab.role;
-              return (
-                <button
-                  key={tab.role}
-                  onClick={() => setActiveTab(tab.role)}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-xl text-left whitespace-nowrap transition-colors ${
-                    isActive
-                      ? 'bg-accent/15 border border-accent/40 text-accent'
-                      : 'bg-bg-secondary border border-border hover:border-border-bright text-text-secondary'
-                  }`}
-                >
-                  <span>{tab.emoji}</span>
-                  <span className="text-sm font-medium">{tab.label}</span>
-                  {agent?.status === 'complete' && <span className="ml-auto text-success text-xs">✓</span>}
-                  {agent?.status === 'error' && <span className="ml-auto text-danger text-xs">✗</span>}
-                </button>
-              );
-            })}
+      {/* Tabs — horizontal pill row */}
+      <div className="flex flex-wrap gap-2 mb-6 overflow-x-auto pb-1">
+        {TAB_ORDER.map(tab => {
+          const isActive = activeTab === tab.role;
+          return (
+            <button
+              key={tab.role}
+              onClick={() => setActiveTab(tab.role)}
+              className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm whitespace-nowrap transition-colors border ${
+                isActive
+                  ? 'bg-text-primary text-white border-text-primary'
+                  : 'bg-white text-text-secondary border-border hover:border-border-bright'
+              }`}
+            >
+              <span>{tab.emoji}</span>
+              <span className="font-medium">{tab.label}</span>
+            </button>
+          );
+        })}
 
-            {analysis.gapQuestions.length > 0 && (
-              <button
-                onClick={() => setActiveTab('gaps' as AgentRole)}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl text-left whitespace-nowrap transition-colors ${
-                  activeTab === ('gaps' as AgentRole)
-                    ? 'bg-accent/15 border border-accent/40 text-accent'
-                    : 'bg-bg-secondary border border-border hover:border-border-bright text-text-secondary'
-                }`}
-              >
-                <span>🔍</span>
-                <span className="text-sm font-medium">Gap Analysis</span>
-                <span className="ml-auto bg-warning/20 text-warning text-xs px-1.5 py-0.5 rounded">
-                  {analysis.gapQuestions.length}
-                </span>
-              </button>
-            )}
-          </div>
-        </div>
+        {analysis.gapQuestions.length > 0 && (
+          <button
+            onClick={() => setActiveTab('gaps' as AgentRole)}
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm whitespace-nowrap transition-colors border ${
+              activeTab === ('gaps' as AgentRole)
+                ? 'bg-text-primary text-white border-text-primary'
+                : 'bg-white text-text-secondary border-border hover:border-border-bright'
+            }`}
+          >
+            <span>🔍</span>
+            <span className="font-medium">Gaps ({analysis.gapQuestions.length})</span>
+          </button>
+        )}
+      </div>
 
-        {/* Content area */}
-        <div className="flex-1 min-w-0">
-          <div className="bg-bg-secondary border border-border rounded-xl p-6 md:p-8">
+      {/* Content area */}
+      <div className="flex flex-col gap-6">
+        <div>
             {activeTab === ('gaps' as AgentRole) ? (
               <GapAnalysis
                 questions={analysis.gapQuestions}
@@ -350,7 +338,7 @@ export default function AnalysisPage() {
                 <div className="flex items-center gap-3 mb-6 pb-4 border-b border-border">
                   <span className="text-3xl">{activeAgent.emoji}</span>
                   <div>
-                    <h2 className="text-xl font-bold" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>{activeAgent.title}</h2>
+                    <h2 className="text-xl font-bold">{activeAgent.title}</h2>
                     <p className="text-text-muted text-sm">
                       {activeAgent.status === 'complete' ? 'Analysis complete' : activeAgent.status}
                     </p>
@@ -364,7 +352,6 @@ export default function AnalysisPage() {
               </div>
             )}
           </div>
-        </div>
       </div>
     </div>
   );

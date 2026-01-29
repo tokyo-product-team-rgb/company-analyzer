@@ -174,19 +174,19 @@ export default function Home() {
   const totalSize = files.reduce((acc, f) => acc + f.file.size, 0);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-12">
+    <div className="max-w-lg mx-auto px-5 py-10">
       {/* Hero */}
-      <div className="text-center mb-12">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4 text-text-primary tracking-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
-          Company Analyzer
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-text-primary">
+          New Analysis
         </h1>
-        <p className="text-text-muted text-base max-w-2xl mx-auto leading-relaxed">
-          Multi-agent AI analysis — PhD Researcher, McKinsey Strategist, Sector Expert & Financial Analyst.
+        <p className="text-text-muted text-sm mt-1">
+          Upload files or enter company details for multi-agent analysis.
         </p>
       </div>
 
       {/* Input Card */}
-      <div className="bg-bg-secondary border border-border rounded-xl p-8 mb-8">
+      <div className="mb-10">
         {/* Company Name */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-text-secondary mb-2">Company Name</label>
@@ -195,7 +195,7 @@ export default function Home() {
             value={companyName}
             onChange={e => setCompanyName(e.target.value)}
             placeholder="e.g., Stripe, Toyota, SpaceX..."
-            className="w-full bg-white border border-border rounded-xl px-4 py-3 text-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
+            className="w-full bg-white border border-border rounded-lg px-4 py-3 text-base text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
           />
         </div>
 
@@ -338,7 +338,7 @@ export default function Home() {
         <button
           onClick={handleSubmit}
           disabled={loading || (!companyName && !text && files.length === 0)}
-          className="w-full mt-6 py-4 bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-base rounded-xl transition-all" style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
+          className="w-full mt-6 py-3.5 bg-text-primary hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed text-white font-medium text-sm rounded-full transition-all"
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">
@@ -357,7 +357,7 @@ export default function Home() {
       {/* Recent Analyses */}
       {analyses.length > 0 && (
         <div>
-          <h2 className="text-xl font-semibold mb-4 text-text-secondary" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Recent Analyses</h2>
+          <h2 className="text-lg font-bold mb-4 text-text-primary">Recent Analyses</h2>
           <div className="grid gap-3">
             {analyses.map(a => (
               <div key={a.id} className="bg-bg-secondary border border-border rounded-xl p-4 hover:border-border-bright transition-colors flex items-center justify-between">

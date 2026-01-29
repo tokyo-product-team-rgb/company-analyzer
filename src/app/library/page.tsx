@@ -42,7 +42,7 @@ export default function LibraryPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-text-primary" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+          <h1 className="text-3xl font-bold text-text-primary">
             Library
           </h1>
           <p className="text-text-secondary mt-1">
@@ -103,7 +103,7 @@ export default function LibraryPage() {
       {!loading && filtered.length === 0 && (
         <div className="text-center py-16 bg-bg-secondary border border-border rounded-xl">
           <div className="text-4xl mb-3">📚</div>
-          <h2 className="text-lg font-semibold text-text-primary mb-1" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+          <h2 className="text-lg font-semibold text-text-primary mb-1">
             {search || filter !== 'all' ? 'No matching analyses' : 'Library is empty'}
           </h2>
           <p className="text-text-muted text-sm mb-4">
@@ -128,7 +128,7 @@ export default function LibraryPage() {
               <div className="flex items-start justify-between">
                 <a href={`/analysis/${a.id}`} className="flex-1 min-w-0">
                   <div className="flex items-center gap-3">
-                    <h3 className="text-lg font-semibold text-text-primary" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                    <h3 className="text-lg font-semibold text-text-primary">
                       {a.companyName}
                     </h3>
                     <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
