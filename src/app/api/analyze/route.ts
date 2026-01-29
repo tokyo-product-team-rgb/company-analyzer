@@ -7,13 +7,6 @@ import { enrichCompany } from '@/lib/web-search';
 
 export const maxDuration = 300;
 
-// Allow large file uploads (up to 50MB)
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
-
 export async function POST(req: NextRequest) {
   try {
     const contentType = req.headers.get('content-type') || '';
@@ -44,7 +37,8 @@ export async function POST(req: NextRequest) {
         const fileName = file.name.toLowerCase();
         if (fileName.endsWith('.pdf')) {
           try {
-            const pdfParse = (await import('pdf-parse')).default;
+            // eslint-disable-next-line @typescript-eslint/no-require-imports
+            const pdfParse = require('pdf-parse');
             const pdfData = await pdfParse(buffer);
             inputText = pdfData.text.slice(0, 50000);
           } catch (e) {
