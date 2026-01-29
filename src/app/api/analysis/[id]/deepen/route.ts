@@ -6,6 +6,26 @@ import { AgentRole } from '@/lib/types';
 
 export const maxDuration = 300;
 
+async function extractTextFromUrl(url: string, filename: string): Promise<string> {
+  const res = await fetch(url);
+  const buffer = Buffer.from(await res.arrayBuffer());
+  const lower = filename.toLowerCase();
+
+  if (lower.endsWith('.pdf')) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const pdfParse = require('pdf-parse');
+      const pdfData = await pdfParse(buffer);
+      return pdfData.text.slice(0, 50000);
+    } catch (e) {
+      console.error('PDF parse error:', e);
+      return buffer.toString('utf-8').slice(0, 50000);
+    }
+  }
+
+  return buffer.toString('utf-8').slice(0, 50000);
+}
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const analysis = await getAnalysis(id);
@@ -15,6 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const body = await req.json();
   const answers: Record<string, string> = body.answers || {};
+  const files: Record<string, { url: string; name: string }[]> = body.files || {};
 
   // Record the deepen attempt
   analysis.deepenHistory.push({ answers, timestamp: new Date().toISOString() });
@@ -22,19 +43,54 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   await saveAnalysis(analysis);
 
   // Fire and forget the re-analysis
-  deepenAnalysis(id, analysis.companyName, analysis.inputSummary, answers).catch(console.error);
+  deepenAnalysis(id, analysis.companyName, analysis.inputFull || analysis.inputSummary, answers, files).catch(console.error);
 
   return NextResponse.json({ status: 'processing' });
 }
 
-async function deepenAnalysis(id: string, companyName: string, originalInput: string, answers: Record<string, string>) {
+async function deepenAnalysis(
+  id: string,
+  companyName: string,
+  originalInput: string,
+  answers: Record<string, string>,
+  files: Record<string, { url: string; name: string }[]>
+) {
   try {
     const webContext = await enrichCompany(companyName);
-    const additionalContext = Object.entries(answers)
+
+    // Build additional context from text answers
+    const textContext = Object.entries(answers)
+      .filter(([, a]) => a.trim())
       .map(([q, a]) => `Q: ${q}\nA: ${a}`)
       .join('\n\n');
 
+    // Extract text from uploaded files
+    const fileTexts: string[] = [];
+    for (const [question, questionFiles] of Object.entries(files)) {
+      for (const f of questionFiles) {
+        try {
+          const text = await extractTextFromUrl(f.url, f.name);
+          fileTexts.push(`--- File: ${f.name} (for: ${question}) ---\n${text}`);
+        } catch (e) {
+          console.error(`Failed to extract text from ${f.name}:`, e);
+          fileTexts.push(`[Could not extract text from ${f.name}]`);
+        }
+      }
+    }
+
+    const fileContext = fileTexts.join('\n\n');
+    let additionalContext = '';
+    if (textContext) additionalContext += `## Text Answers\n${textContext}\n\n`;
+    if (fileContext) additionalContext += `## Uploaded Files\n${fileContext}\n\n`;
+
     const companyInfo = `Company: ${companyName}\n\n${originalInput}\n\n## Additional Information Provided:\n${additionalContext}`;
+
+    // Update status
+    const analysisBeforeAgents = await getAnalysis(id);
+    if (analysisBeforeAgents) {
+      analysisBeforeAgents.currentStep = 'Running expert agents with new context...';
+      await saveAnalysis(analysisBeforeAgents);
+    }
 
     const roles: AgentRole[] = ['researcher', 'strategist', 'sector', 'financial'];
     const results = await Promise.all(
@@ -57,6 +113,7 @@ async function deepenAnalysis(id: string, companyName: string, originalInput: st
       analysis.gapQuestions = gapQuestions;
       analysis.webEnrichment = webContext;
       analysis.status = 'complete';
+      analysis.currentStep = null;
       analysis.updatedAt = new Date().toISOString();
       await saveAnalysis(analysis);
     }
