@@ -16,7 +16,7 @@ async function callGemini(systemPrompt: string, userPrompt: string): Promise<str
   }
 
   const model = client.getGenerativeModel({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-2.5-pro',
     systemInstruction: systemPrompt,
   });
 
