@@ -102,7 +102,7 @@ export default function Home() {
           setUploadProgress(`Uploading ${i + 1}/${files.length}: ${f.file.name} (${formatSize(f.file.size)})`);
 
           try {
-            const blob = await upload(`uploads/${f.path}`, f.file, {
+            const blob = await upload(`uploads/${Date.now()}-${f.file.name}`, f.file, {
               access: 'public',
               handleUploadUrl: '/api/upload',
             });
