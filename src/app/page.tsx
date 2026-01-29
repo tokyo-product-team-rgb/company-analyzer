@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { upload } from '@vercel/blob/client';
 
 interface AnalysisEntry {
   id: string;
@@ -10,16 +11,26 @@ interface AnalysisEntry {
   status: string;
 }
 
+interface UploadedFile {
+  file: File;
+  path: string; // includes folder path if from directory
+  status: 'pending' | 'uploading' | 'done' | 'error';
+  progress: number;
+  blobUrl?: string;
+}
+
 export default function Home() {
   const router = useRouter();
   const [companyName, setCompanyName] = useState('');
   const [text, setText] = useState('');
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<UploadedFile[]>([]);
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState('');
   const [error, setError] = useState('');
   const [analyses, setAnalyses] = useState<AnalysisEntry[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const folderRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch('/api/analyses')
@@ -28,9 +39,50 @@ export default function Home() {
       .catch(() => {});
   }, []);
 
+  const addFiles = useCallback((newFiles: FileList | File[]) => {
+    const arr = Array.from(newFiles).map(f => ({
+      file: f,
+      path: (f as File & { webkitRelativePath?: string }).webkitRelativePath || f.name,
+      status: 'pending' as const,
+      progress: 0,
+    }));
+    setFiles(prev => [...prev, ...arr]);
+  }, []);
+
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+
+    const items = e.dataTransfer.items;
+    if (items) {
+      const filePromises: Promise<File>[] = [];
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        if (item.kind === 'file') {
+          const entry = item.webkitGetAsEntry?.();
+          if (entry) {
+            collectFiles(entry, '', filePromises);
+          } else {
+            const f = item.getAsFile();
+            if (f) filePromises.push(Promise.resolve(f));
+          }
+        }
+      }
+      Promise.all(filePromises).then(collected => {
+        if (collected.length > 0) addFiles(collected);
+      });
+    } else {
+      addFiles(e.dataTransfer.files);
+    }
+  }, [addFiles]);
+
   const handleSubmit = async () => {
-    if (!companyName && !text && !file) {
-      setError('Please provide a company name, paste text, or upload a file');
+    if (!companyName && !text && files.length === 0) {
+      setError('Please provide a company name, paste text, or upload files');
       return;
     }
 
@@ -38,39 +90,66 @@ export default function Home() {
     setError('');
 
     try {
-      const formData = new FormData();
-      if (companyName) formData.append('companyName', companyName);
-      if (text) formData.append('text', text);
-      if (file) formData.append('file', file);
+      // Upload files to Vercel Blob first
+      const uploadedFiles: { url: string; name: string; size: number }[] = [];
 
-      const res = await fetch('/api/analyze', { method: 'POST', body: formData });
-      
+      if (files.length > 0) {
+        setUploadProgress(`Uploading 0/${files.length} files...`);
+
+        for (let i = 0; i < files.length; i++) {
+          const f = files[i];
+          setFiles(prev => prev.map((pf, j) => j === i ? { ...pf, status: 'uploading' } : pf));
+          setUploadProgress(`Uploading ${i + 1}/${files.length}: ${f.file.name} (${formatSize(f.file.size)})`);
+
+          try {
+            const blob = await upload(`uploads/${f.path}`, f.file, {
+              access: 'public',
+              handleUploadUrl: '/api/upload',
+            });
+
+            uploadedFiles.push({ url: blob.url, name: f.path, size: f.file.size });
+            setFiles(prev => prev.map((pf, j) => j === i ? { ...pf, status: 'done', progress: 100, blobUrl: blob.url } : pf));
+          } catch (err) {
+            console.error(`Upload failed for ${f.file.name}:`, err);
+            setFiles(prev => prev.map((pf, j) => j === i ? { ...pf, status: 'error' } : pf));
+          }
+        }
+
+        setUploadProgress('Analyzing...');
+      }
+
+      // Send analysis request with blob URLs (small JSON, no file data)
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companyName,
+          text,
+          files: uploadedFiles,
+        }),
+      });
+
       if (!res.ok) {
         let errMsg = 'Analysis failed';
         try {
           const data = await res.json();
           errMsg = data.error || errMsg;
         } catch {
-          errMsg = `Server error (${res.status}). The file may be too large — try pasting text instead.`;
+          errMsg = `Server error (${res.status})`;
         }
         throw new Error(errMsg);
       }
-      
-      const data = await res.json();
 
+      const data = await res.json();
       router.push(`/analysis/${data.id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong');
       setLoading(false);
+      setUploadProgress('');
     }
   };
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    const f = e.dataTransfer.files[0];
-    if (f) setFile(f);
-  }, []);
+  const totalSize = files.reduce((acc, f) => acc + f.file.size, 0);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
@@ -113,7 +192,8 @@ export default function Home() {
             onChange={e => setText(e.target.value)}
             placeholder="Paste company description, pitch deck text, financial data, or any relevant information..."
             rows={6}
-            className="w-full bg-white border border-border rounded-lg px-4 py-3 text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors resize-y text-sm" style={{ fontFamily: 'var(--font-body)' }}
+            className="w-full bg-white border border-border rounded-lg px-4 py-3 text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors resize-y text-sm"
+            style={{ fontFamily: 'var(--font-body)' }}
           />
         </div>
 
@@ -125,39 +205,93 @@ export default function Home() {
         </div>
 
         {/* File Upload */}
-        <div
-          className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-            dragOver ? 'border-accent bg-accent/5' : file ? 'border-success bg-success/5' : 'border-border hover:border-border-bright'
-          }`}
-          onClick={() => fileRef.current?.click()}
-          onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={handleDrop}
-        >
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".pdf,.pptx,.csv,.txt,.doc,.docx,.xls,.xlsx"
-            className="hidden"
-            onChange={e => setFile(e.target.files?.[0] || null)}
-          />
-          {file ? (
-            <div>
-              <div className="text-3xl mb-2">📄</div>
-              <p className="font-medium text-success">{file.name}</p>
-              <p className="text-text-muted text-sm mt-1">{(file.size / 1024).toFixed(1)} KB</p>
-              <button
-                onClick={e => { e.stopPropagation(); setFile(null); }}
-                className="text-sm text-danger mt-2 hover:underline"
-              >
-                Remove
-              </button>
-            </div>
-          ) : (
-            <div>
-              <div className="text-3xl mb-2">📁</div>
-              <p className="text-text-secondary">Drag & drop a file or <span className="text-accent">browse</span></p>
-              <p className="text-text-muted text-sm mt-1">PDF, PPTX, CSV, TXT — up to 10MB</p>
+        <div>
+          <label className="block text-sm font-medium text-text-secondary mb-2">Upload Files or Folders</label>
+          <div
+            className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+              dragOver ? 'border-accent bg-accent/5' : files.length > 0 ? 'border-success bg-success/5' : 'border-border hover:border-border-bright'
+            }`}
+            onClick={() => fileRef.current?.click()}
+            onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+          >
+            <input
+              ref={fileRef}
+              type="file"
+              multiple
+              accept=".pdf,.pptx,.csv,.txt,.doc,.docx,.xls,.xlsx,.json,.md,.html"
+              className="hidden"
+              onChange={e => { if (e.target.files) addFiles(e.target.files); e.target.value = ''; }}
+            />
+            <input
+              ref={folderRef}
+              type="file"
+              // @ts-expect-error webkitdirectory is not in React types
+              webkitdirectory=""
+              directory=""
+              multiple
+              className="hidden"
+              onChange={e => { if (e.target.files) addFiles(e.target.files); e.target.value = ''; }}
+            />
+
+            {files.length === 0 ? (
+              <div>
+                <div className="text-3xl mb-2">📁</div>
+                <p className="text-text-secondary">
+                  Drag & drop files/folders or <span className="text-accent">browse files</span>
+                </p>
+                <p className="text-text-muted text-sm mt-1">PDF, PPTX, CSV, TXT, DOCX, XLSX, JSON, MD — up to 1GB total</p>
+                <button
+                  type="button"
+                  onClick={e => { e.stopPropagation(); folderRef.current?.click(); }}
+                  className="mt-3 text-sm text-accent hover:text-accent-hover underline"
+                >
+                  Or select a folder
+                </button>
+              </div>
+            ) : (
+              <div onClick={e => e.stopPropagation()}>
+                <p className="text-text-secondary text-sm mb-2">
+                  {files.length} file{files.length !== 1 ? 's' : ''} · {formatSize(totalSize)}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="text-sm text-accent hover:text-accent-hover underline mr-4"
+                >
+                  + Add more files
+                </button>
+                <button
+                  type="button"
+                  onClick={() => folderRef.current?.click()}
+                  className="text-sm text-accent hover:text-accent-hover underline"
+                >
+                  + Add folder
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* File list */}
+          {files.length > 0 && (
+            <div className="mt-3 max-h-48 overflow-y-auto border border-border rounded-lg divide-y divide-border">
+              {files.map((f, i) => (
+                <div key={i} className="flex items-center gap-3 px-3 py-2 text-sm">
+                  <span className="text-text-muted">
+                    {f.status === 'done' ? '✅' : f.status === 'uploading' ? '⏳' : f.status === 'error' ? '❌' : '📄'}
+                  </span>
+                  <span className="flex-1 truncate text-text-primary">{f.path}</span>
+                  <span className="text-text-muted text-xs">{formatSize(f.file.size)}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeFile(i)}
+                    className="text-danger hover:text-danger/80 text-xs"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
             </div>
           )}
         </div>
@@ -170,7 +304,7 @@ export default function Home() {
         {/* Submit */}
         <button
           onClick={handleSubmit}
-          disabled={loading || (!companyName && !text && !file)}
+          disabled={loading || (!companyName && !text && files.length === 0)}
           className="w-full mt-6 py-4 bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold text-lg rounded-lg transition-all transform hover:scale-[1.01] active:scale-[0.99]"
         >
           {loading ? (
@@ -179,7 +313,7 @@ export default function Home() {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              Launching Analysis Agents...
+              {uploadProgress || 'Launching Analysis Agents...'}
             </span>
           ) : (
             '🚀 Analyze Company'
@@ -190,7 +324,7 @@ export default function Home() {
       {/* Recent Analyses */}
       {analyses.length > 0 && (
         <div>
-          <h2 className="text-xl font-semibold mb-4 text-text-secondary">Recent Analyses</h2>
+          <h2 className="text-xl font-semibold mb-4 text-text-secondary" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Recent Analyses</h2>
           <div className="grid gap-3">
             {analyses.map(a => (
               <a
@@ -216,4 +350,37 @@ export default function Home() {
       )}
     </div>
   );
+}
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}
+
+function collectFiles(entry: FileSystemEntry, path: string, promises: Promise<File>[]) {
+  if (entry.isFile) {
+    promises.push(
+      new Promise<File>((resolve, reject) => {
+        (entry as FileSystemFileEntry).file(f => {
+          // Attach the relative path
+          Object.defineProperty(f, 'webkitRelativePath', { value: path ? `${path}/${f.name}` : f.name });
+          resolve(f);
+        }, reject);
+      })
+    );
+  } else if (entry.isDirectory) {
+    const dirReader = (entry as FileSystemDirectoryEntry).createReader();
+    promises.push(
+      new Promise<File>((resolve, reject) => {
+        dirReader.readEntries(entries => {
+          const subPath = path ? `${path}/${entry.name}` : entry.name;
+          entries.forEach(e => collectFiles(e, subPath, promises));
+          // Return a dummy resolved promise — actual files are pushed to `promises`
+          resolve(null as unknown as File);
+        }, reject);
+      })
+    );
+  }
 }
