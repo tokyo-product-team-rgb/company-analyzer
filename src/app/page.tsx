@@ -278,18 +278,29 @@ export default function Home() {
             <div className="mt-3 max-h-48 overflow-y-auto border border-border rounded-lg divide-y divide-border">
               {files.map((f, i) => (
                 <div key={i} className="flex items-center gap-3 px-3 py-2 text-sm">
-                  <span className="text-text-muted">
-                    {f.status === 'done' ? '✅' : f.status === 'uploading' ? '⏳' : f.status === 'error' ? '❌' : '📄'}
+                  <span className="text-text-muted flex-shrink-0">
+                    {f.status === 'done' ? (
+                      <svg className="w-4 h-4 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                    ) : f.status === 'uploading' ? (
+                      <svg className="animate-spin w-4 h-4 text-accent" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
+                    ) : f.status === 'error' ? (
+                      <span className="text-warning text-xs font-medium" title="Upload failed — text will be used instead">⚠</span>
+                    ) : (
+                      <span className="text-text-muted">📄</span>
+                    )}
                   </span>
                   <span className="flex-1 truncate text-text-primary">{f.path}</span>
-                  <span className="text-text-muted text-xs">{formatSize(f.file.size)}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeFile(i)}
-                    className="text-danger hover:text-danger/80 text-xs"
-                  >
-                    ✕
-                  </button>
+                  <span className="text-text-muted text-xs flex-shrink-0">{formatSize(f.file.size)}</span>
+                  {!loading && (
+                    <button
+                      type="button"
+                      onClick={() => removeFile(i)}
+                      className="text-text-muted hover:text-danger text-xs flex-shrink-0 ml-1"
+                      title="Remove file"
+                    >
+                      Remove
+                    </button>
+                  )}
                 </div>
               ))}
             </div>

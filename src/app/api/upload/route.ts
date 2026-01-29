@@ -8,29 +8,10 @@ export async function POST(req: NextRequest) {
     const jsonResponse = await handleUpload({
       body,
       request: req,
-      onBeforeGenerateToken: async (pathname: string) => {
-        // Allow any upload
+      onBeforeGenerateToken: async () => {
         return {
-          allowedContentTypes: [
-            'application/pdf',
-            'text/plain',
-            'text/csv',
-            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'application/vnd.ms-excel',
-            'application/vnd.ms-powerpoint',
-            'application/msword',
-            'application/json',
-            'text/markdown',
-            'text/html',
-            'image/png',
-            'image/jpeg',
-            'image/webp',
-            'application/octet-stream',
-          ],
           maximumSizeInBytes: 1024 * 1024 * 1024, // 1GB
-          tokenPayload: JSON.stringify({ pathname }),
+          // No content type restriction — accept anything
         };
       },
       onUploadCompleted: async ({ blob }) => {
@@ -41,6 +22,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(jsonResponse);
   } catch (error) {
     console.error('Upload error:', error);
-    return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
+    const msg = error instanceof Error ? error.message : 'Upload failed';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
