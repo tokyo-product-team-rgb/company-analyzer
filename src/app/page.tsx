@@ -44,9 +44,19 @@ export default function Home() {
       if (file) formData.append('file', file);
 
       const res = await fetch('/api/analyze', { method: 'POST', body: formData });
+      
+      if (!res.ok) {
+        let errMsg = 'Analysis failed';
+        try {
+          const data = await res.json();
+          errMsg = data.error || errMsg;
+        } catch {
+          errMsg = `Server error (${res.status}). The file may be too large — try pasting text instead.`;
+        }
+        throw new Error(errMsg);
+      }
+      
       const data = await res.json();
-
-      if (!res.ok) throw new Error(data.error || 'Analysis failed');
 
       router.push(`/analysis/${data.id}`);
     } catch (e) {

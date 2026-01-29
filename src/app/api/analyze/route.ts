@@ -7,6 +7,13 @@ import { enrichCompany } from '@/lib/web-search';
 
 export const maxDuration = 300;
 
+// Allow large file uploads (up to 50MB)
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
 export async function POST(req: NextRequest) {
   try {
     const contentType = req.headers.get('content-type') || '';
@@ -15,7 +22,13 @@ export async function POST(req: NextRequest) {
     let inputType: 'file' | 'text' | 'name' = 'name';
 
     if (contentType.includes('multipart/form-data')) {
-      const formData = await req.formData();
+      let formData: FormData;
+      try {
+        formData = await req.formData();
+      } catch (e) {
+        console.error('FormData parse error:', e);
+        return NextResponse.json({ error: 'File too large or invalid format. Try a smaller file or paste the text instead.' }, { status: 400 });
+      }
       companyName = (formData.get('companyName') as string) || '';
       const text = formData.get('text') as string;
       const file = formData.get('file') as File | null;
@@ -24,10 +37,23 @@ export async function POST(req: NextRequest) {
         inputType = 'file';
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
-        const id = uuidv4();
-        await uploadFile(id, file.name, buffer);
-        // For now, extract text from file (simple approach for txt/csv)
-        inputText = buffer.toString('utf-8').slice(0, 50000);
+        const uploadId = uuidv4();
+        await uploadFile(uploadId, file.name, buffer);
+        
+        // Extract text based on file type
+        const fileName = file.name.toLowerCase();
+        if (fileName.endsWith('.pdf')) {
+          try {
+            const pdfParse = (await import('pdf-parse')).default;
+            const pdfData = await pdfParse(buffer);
+            inputText = pdfData.text.slice(0, 50000);
+          } catch (e) {
+            console.error('PDF parse error:', e);
+            inputText = buffer.toString('utf-8').slice(0, 50000);
+          }
+        } else {
+          inputText = buffer.toString('utf-8').slice(0, 50000);
+        }
         if (!companyName) companyName = file.name.replace(/\.[^.]+$/, '');
       } else if (text) {
         inputType = 'text';
