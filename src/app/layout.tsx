@@ -21,7 +21,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <a href="/" className="flex items-center gap-3">
             <span className="text-xl font-bold text-text-primary tracking-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Company Analyzer</span>
           </a>
-          <a href="/" className="text-sm text-text-secondary hover:text-text-primary transition-colors" style={{ fontFamily: 'var(--font-body)' }}>All Analyses</a>
+          <div className="flex items-center gap-5" style={{ fontFamily: 'var(--font-body)' }}>
+            <a href="/library" className="text-sm text-text-secondary hover:text-text-primary transition-colors">Library</a>
+            <a href="/" className="text-sm text-text-secondary hover:text-text-primary transition-colors">+ New</a>
+          </div>
         </nav>
         <main>{children}</main>
       </body>
