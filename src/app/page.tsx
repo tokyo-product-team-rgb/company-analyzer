@@ -112,7 +112,19 @@ export default function Home() {
           } catch (err) {
             console.error(`Upload failed for ${f.file.name}:`, err);
             setFiles(prev => prev.map((pf, j) => j === i ? { ...pf, status: 'error' } : pf));
+            setError(`Upload failed for "${f.file.name}". Please try again or remove the file.`);
+            setLoading(false);
+            setUploadProgress('');
+            return;
           }
+        }
+
+        // Check if any uploads failed
+        if (uploadedFiles.length === 0 && files.length > 0) {
+          setError('All file uploads failed. Please try again.');
+          setLoading(false);
+          setUploadProgress('');
+          return;
         }
 
         setUploadProgress('Analyzing...');
