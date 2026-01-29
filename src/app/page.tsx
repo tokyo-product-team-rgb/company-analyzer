@@ -76,11 +76,11 @@ export default function Home() {
     <div className="max-w-4xl mx-auto px-4 py-12">
       {/* Hero */}
       <div className="text-center mb-12">
-        <h1 className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-accent to-indigo-500 bg-clip-text text-transparent">
+        <h1 className="text-4xl md:text-5xl font-bold mb-4 text-text-primary tracking-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
           Company Analyzer
         </h1>
-        <p className="text-text-secondary text-lg max-w-2xl mx-auto">
-          Multi-agent AI analysis powered by specialized experts — PhD Researcher, McKinsey Strategist, Sector Expert, and Financial Analyst.
+        <p className="text-text-secondary text-lg max-w-2xl mx-auto leading-relaxed">
+          Multi-agent AI analysis — PhD Researcher, McKinsey Strategist, Sector Expert and Financial Analyst.
         </p>
       </div>
 
@@ -94,7 +94,7 @@ export default function Home() {
             value={companyName}
             onChange={e => setCompanyName(e.target.value)}
             placeholder="e.g., Stripe, Toyota, SpaceX..."
-            className="w-full bg-bg-primary border border-border rounded-lg px-4 py-3 text-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors"
+            className="w-full bg-white border border-border rounded-lg px-4 py-3 text-lg text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors"
           />
         </div>
 
@@ -113,7 +113,7 @@ export default function Home() {
             onChange={e => setText(e.target.value)}
             placeholder="Paste company description, pitch deck text, financial data, or any relevant information..."
             rows={6}
-            className="w-full bg-bg-primary border border-border rounded-lg px-4 py-3 text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent transition-colors resize-y font-mono text-sm"
+            className="w-full bg-white border border-border rounded-lg px-4 py-3 text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-colors resize-y text-sm" style={{ fontFamily: 'var(--font-body)' }}
           />
         </div>
 

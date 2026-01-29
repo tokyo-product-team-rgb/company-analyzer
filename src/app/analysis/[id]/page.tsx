@@ -88,7 +88,7 @@ export default function AnalysisPage() {
             </span>
           )}
         </div>
-        <h1 className="text-3xl font-bold">{analysis.companyName}</h1>
+        <h1 className="text-3xl font-bold" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>{analysis.companyName}</h1>
         <p className="text-text-secondary mt-1">
           {analysis.inputType === 'file' ? '📄 File upload' : analysis.inputType === 'text' ? '📝 Text input' : '🏢 Name only'}
           {' · '}

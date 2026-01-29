@@ -8,19 +8,20 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&display=swap" rel="stylesheet" />
       </head>
       <body className="min-h-screen bg-bg-primary antialiased">
-        <nav className="border-b border-border px-6 py-3 flex items-center justify-between bg-bg-secondary/80 backdrop-blur-sm sticky top-0 z-50">
-          <a href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-accent flex items-center justify-center text-white font-bold text-sm">CA</div>
-            <span className="font-semibold text-text-primary">Company Analyzer</span>
+        {/* FT-style top accent line */}
+        <div className="h-1" style={{ backgroundColor: '#0D7680' }} />
+        <nav className="border-b border-border px-6 py-4 flex items-center justify-between bg-bg-secondary sticky top-0 z-50">
+          <a href="/" className="flex items-center gap-3">
+            <span className="text-xl font-bold text-text-primary tracking-tight" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>Company Analyzer</span>
           </a>
-          <a href="/" className="text-sm text-text-secondary hover:text-text-primary transition-colors">All Analyses</a>
+          <a href="/" className="text-sm text-text-secondary hover:text-text-primary transition-colors" style={{ fontFamily: 'var(--font-body)' }}>All Analyses</a>
         </nav>
         <main>{children}</main>
       </body>
