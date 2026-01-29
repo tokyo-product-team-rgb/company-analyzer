@@ -6,6 +6,15 @@ import { enrichCompany } from '@/lib/web-search';
 
 export const maxDuration = 300;
 
+// Non-fatal save — log errors but don't crash
+async function safeSave(analysis: Parameters<typeof saveAnalysis>[0]) {
+  try {
+    await saveAnalysis(analysis);
+  } catch (e) {
+    console.error('Save failed (non-fatal):', e);
+  }
+}
+
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
@@ -14,14 +23,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Analysis not found' }, { status: 404 });
   }
 
-  // Already complete or already being processed by another call
   if (analysis.status === 'complete') {
     return NextResponse.json({ status: 'complete' });
   }
 
-  // Check if any agent is already running (another process call is active)
+  // Prevent duplicate processing
   const hasRunning = analysis.agents.some(a => a.status === 'running');
-  if (hasRunning) {
+  const hasComplete = analysis.agents.some(a => a.status === 'complete');
+  if (hasRunning || hasComplete) {
     return NextResponse.json({ status: 'already-processing' });
   }
 
@@ -31,42 +40,47 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     // Step 1: Web enrichment
     analysis.currentStep = 'Searching the web for company data...';
-    await saveAnalysis(analysis);
+    analysis.status = 'processing';
+    await safeSave(analysis);
 
-    const webContext = await enrichCompany(analysis.companyName);
+    let webContext = '';
+    try {
+      webContext = await enrichCompany(analysis.companyName);
+    } catch (e) {
+      console.error('Web enrichment failed:', e);
+      webContext = 'Web search unavailable.';
+    }
     analysis.webEnrichment = webContext;
     analysis.currentStep = 'Running expert agents...';
-    await saveAnalysis(analysis);
+    await safeSave(analysis);
 
     // Step 2: Run 4 specialist agents in parallel
     const roles: AgentRole[] = ['researcher', 'strategist', 'sector', 'financial'];
 
-    // Mark all 4 as running
     for (const role of roles) {
       const idx = analysis.agents.findIndex(a => a.role === role);
       analysis.agents[idx].status = 'running';
     }
-    await saveAnalysis(analysis);
+    await safeSave(analysis);
 
     const results = await Promise.all(
       roles.map(async (role) => {
         const result = await runAgent(role, companyInfo, webContext);
-        // Save immediately when each completes
         const idx = analysis.agents.findIndex(a => a.role === role);
         analysis.agents[idx] = result;
         analysis.updatedAt = new Date().toISOString();
         const doneCount = analysis.agents.filter(a => a.status === 'complete').length;
         analysis.currentStep = `${doneCount}/5 agents complete`;
-        await saveAnalysis(analysis);
+        await safeSave(analysis);
         return result;
       })
     );
 
-    // Step 3: Executive summary (needs other agents' output)
+    // Step 3: Executive summary
     analysis.currentStep = 'Writing executive summary...';
     const summaryIdx = analysis.agents.findIndex(a => a.role === 'summary');
     analysis.agents[summaryIdx].status = 'running';
-    await saveAnalysis(analysis);
+    await safeSave(analysis);
 
     const otherAnalyses = results
       .filter(r => r.status === 'complete')
@@ -75,11 +89,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const summary = await runAgent('summary', companyInfo, webContext, otherAnalyses);
     analysis.agents[summaryIdx] = summary;
-    await saveAnalysis(analysis);
+    await safeSave(analysis);
 
     // Step 4: Gap questions
     analysis.currentStep = 'Identifying knowledge gaps...';
-    await saveAnalysis(analysis);
+    await safeSave(analysis);
 
     const gapQuestions = await generateGapQuestions(companyInfo, otherAnalyses);
     analysis.gapQuestions = gapQuestions;
@@ -88,14 +102,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     analysis.status = 'complete';
     analysis.currentStep = undefined;
     analysis.updatedAt = new Date().toISOString();
-    await saveAnalysis(analysis);
+    await saveAnalysis(analysis); // Final save — use real save, not safe
 
     return NextResponse.json({ status: 'complete' });
   } catch (error) {
     console.error('Process error:', error);
     analysis.status = 'error';
     analysis.currentStep = 'Analysis failed — ' + (error instanceof Error ? error.message : 'Unknown error');
-    await saveAnalysis(analysis);
+    try { await saveAnalysis(analysis); } catch { /* last resort */ }
     return NextResponse.json({ error: 'Processing failed' }, { status: 500 });
   }
 }

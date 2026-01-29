@@ -4,8 +4,9 @@ import { AGENT_CONFIG, getGapAnalysisPrompt } from './agents';
 
 function getClient(): Anthropic | null {
   const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return null;
-  return new Anthropic({ apiKey: key });
+  console.log('ANTHROPIC_API_KEY present:', !!key, 'length:', key?.length || 0);
+  if (!key || key.trim().length === 0) return null;
+  return new Anthropic({ apiKey: key.trim() });
 }
 
 async function callClaude(systemPrompt: string, userPrompt: string): Promise<string> {

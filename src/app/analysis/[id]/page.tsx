@@ -118,6 +118,38 @@ export default function AnalysisPage() {
   const pipelineStep = getPipelineStep(analysis);
   const activeAgent = analysis.agents.find(a => a.role === activeTab);
 
+  // ── ERROR VIEW ──
+  if (analysis.status === 'error') {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <div className="mb-8">
+          <a href="/" className="text-text-muted hover:text-text-secondary text-sm">← Back</a>
+          <h1 className="text-3xl font-bold mt-3" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>{analysis.companyName}</h1>
+        </div>
+        <div className="bg-bg-secondary border border-danger/30 rounded-xl p-8 text-center">
+          <div className="text-4xl mb-3">⚠️</div>
+          <h2 className="text-lg font-semibold text-text-primary mb-2" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+            Analysis Failed
+          </h2>
+          <p className="text-text-secondary text-sm mb-2">
+            {analysis.currentStep || 'An error occurred during analysis.'}
+          </p>
+          <p className="text-text-muted text-xs mb-6">
+            This can happen if the AI service is temporarily unavailable. Try submitting again.
+          </p>
+          <div className="flex items-center justify-center gap-3">
+            <a href="/" className="px-4 py-2 bg-accent text-white rounded-lg text-sm font-medium hover:bg-accent-hover transition-colors">
+              Try Again
+            </a>
+            <a href="/library" className="px-4 py-2 bg-bg-tertiary text-text-secondary rounded-lg text-sm font-medium hover:text-text-primary transition-colors">
+              Library
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ── PROCESSING VIEW ──
   if (isProcessing) {
     return (

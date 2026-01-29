@@ -26,7 +26,7 @@ export async function saveIndex(index: AnalysisIndex): Promise<void> {
       await del(blob.url);
     }
   } catch { /* ignore */ }
-  await put(INDEX_KEY, JSON.stringify(index), { access: 'public', addRandomSuffix: false });
+  await put(INDEX_KEY, JSON.stringify(index), { access: 'public', addRandomSuffix: false, allowOverwrite: true });
 }
 
 export async function getAnalysis(id: string): Promise<Analysis | null> {
@@ -49,7 +49,7 @@ export async function saveAnalysis(analysis: Analysis): Promise<void> {
     }
   } catch { /* ignore */ }
 
-  await put(analysisKey(analysis.id), JSON.stringify(analysis), { access: 'public', addRandomSuffix: false });
+  await put(analysisKey(analysis.id), JSON.stringify(analysis), { access: 'public', addRandomSuffix: false, allowOverwrite: true });
 
   // Update index
   const index = await getIndex();
