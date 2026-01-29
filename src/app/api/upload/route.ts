@@ -1,35 +1,27 @@
-import { handleUpload, type HandleUploadBody } from '@vercel/blob/client';
-import { NextRequest, NextResponse } from 'next/server';
+import { put } from '@vercel/blob';
+import { NextResponse } from 'next/server';
 
-// Handle both the token generation and the completion callback
-export async function POST(req: NextRequest) {
-  let body: HandleUploadBody;
-  try {
-    body = (await req.json()) as HandleUploadBody;
-  } catch {
-    return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
-  }
+// Use Edge runtime — no body size limit
+export const runtime = 'edge';
 
+export async function POST(req: Request) {
   try {
-    const jsonResponse = await handleUpload({
-      body,
-      request: req,
-      onBeforeGenerateToken: async () => {
-        return {
-          maximumSizeInBytes: 1024 * 1024 * 1024, // 1GB
-        };
-      },
-      onUploadCompleted: async () => {
-        // No-op — we don't need to do anything on completion
-      },
+    const formData = await req.formData();
+    const file = formData.get('file') as File | null;
+    const pathname = (formData.get('pathname') as string) || `uploads/${Date.now()}`;
+
+    if (!file) {
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+    }
+
+    const blob = await put(pathname, file, {
+      access: 'public',
     });
 
-    return NextResponse.json(jsonResponse);
+    return NextResponse.json({ url: blob.url, pathname: blob.pathname });
   } catch (error) {
-    console.error('Upload handler error:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Upload failed' },
-      { status: 500 }
-    );
+    console.error('Upload error:', error);
+    const msg = error instanceof Error ? error.message : 'Upload failed';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

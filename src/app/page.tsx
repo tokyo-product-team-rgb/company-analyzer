@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { upload } from '@vercel/blob/client';
+// Upload via edge runtime route (no body size limit)
 
 interface AnalysisEntry {
   id: string;
@@ -102,11 +102,21 @@ export default function Home() {
           setUploadProgress(`Uploading ${i + 1}/${files.length}: ${f.file.name} (${formatSize(f.file.size)})`);
 
           try {
-            const blob = await upload(`uploads/${Date.now()}-${f.file.name}`, f.file, {
-              access: 'public',
-              handleUploadUrl: '/api/upload',
+            const uploadForm = new FormData();
+            uploadForm.append('file', f.file);
+            uploadForm.append('pathname', `uploads/${Date.now()}-${f.file.name}`);
+
+            const uploadRes = await fetch('/api/upload', {
+              method: 'POST',
+              body: uploadForm,
             });
 
+            if (!uploadRes.ok) {
+              const errData = await uploadRes.json().catch(() => ({ error: 'Upload failed' }));
+              throw new Error(errData.error || `Upload failed (${uploadRes.status})`);
+            }
+
+            const blob = await uploadRes.json();
             uploadedFiles.push({ url: blob.url, name: f.path, size: f.file.size });
             setFiles(prev => prev.map((pf, j) => j === i ? { ...pf, status: 'done', progress: 100, blobUrl: blob.url } : pf));
           } catch (err) {
