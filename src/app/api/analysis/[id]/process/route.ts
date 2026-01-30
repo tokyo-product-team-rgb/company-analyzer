@@ -113,13 +113,36 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       })
     );
 
-    // Step 4: Executive summary (synthesizes ALL agents)
+    // Step 4: Run 7 deal agents in parallel
+    analysis.currentStep = 'Running deal analysis agents...';
+    const dealRoles: AgentRole[] = ['legal', 'geopolitical', 'team', 'supply_chain', 'growth', 'cybersecurity', 'fund_fit'];
+
+    for (const role of dealRoles) {
+      const idx = analysis.agents.findIndex(a => a.role === role);
+      if (idx >= 0) analysis.agents[idx].status = 'running';
+    }
+    await safeSave(analysis);
+
+    const dealResults = await Promise.all(
+      dealRoles.map(async (role) => {
+        const result = await runAgent(role, companyInfo, webContext);
+        const idx = analysis.agents.findIndex(a => a.role === role);
+        if (idx >= 0) analysis.agents[idx] = result;
+        analysis.updatedAt = new Date().toISOString();
+        const doneCount = analysis.agents.filter(a => a.status === 'complete').length;
+        analysis.currentStep = `${doneCount}/${analysis.agents.length} agents complete`;
+        await safeSave(analysis);
+        return result;
+      })
+    );
+
+    // Step 5: Executive summary (synthesizes ALL agents)
     analysis.currentStep = 'Writing executive summary...';
     const summaryIdx = analysis.agents.findIndex(a => a.role === 'summary');
     analysis.agents[summaryIdx].status = 'running';
     await safeSave(analysis);
 
-    const allAgentResults = [...businessResults, ...scienceResults];
+    const allAgentResults = [...businessResults, ...scienceResults, ...dealResults];
     const otherAnalyses = allAgentResults
       .filter(r => r.status === 'complete')
       .map(r => `## ${r.emoji} ${r.title}\n${r.content}`)
@@ -129,7 +152,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     analysis.agents[summaryIdx] = summary;
     await safeSave(analysis);
 
-    // Step 5: Quality review
+    // Step 6: Quality review
     analysis.currentStep = 'Running quality review...';
     const qaIdx = analysis.agents.findIndex(a => a.role === 'qa');
     if (qaIdx >= 0) {
@@ -148,7 +171,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       await safeSave(analysis);
     }
 
-    // Step 6: Gap questions
+    // Step 7: Gap questions
     analysis.currentStep = 'Identifying knowledge gaps...';
     await safeSave(analysis);
 

@@ -18,6 +18,13 @@ const TAB_ORDER: { role: AgentRole; emoji: string; label: string; description: s
   { role: 'ai_expert', emoji: '🤖', label: 'AI/ML Scientist', description: 'Evaluating model architectures, data moats, and AI safety' },
   { role: 'mechanical', emoji: '⚙️', label: 'Mechanical Engineer', description: 'Evaluating manufacturing, robotics, and production scalability' },
   { role: 'physics', emoji: '🔬', label: 'Physicist', description: 'Evaluating scientific claims, quantum tech, and physics soundness' },
+  { role: 'legal', emoji: '🧑‍⚖️', label: 'Legal Analyst', description: 'Assessing legal risks, IP protection, and regulatory compliance' },
+  { role: 'geopolitical', emoji: '🌍', label: 'Geopolitical Analyst', description: 'Evaluating geopolitical risk, sanctions, and supply chain exposure' },
+  { role: 'team', emoji: '🧑‍💼', label: 'Team Assessor', description: 'Assessing founder-market fit, team composition, and leadership' },
+  { role: 'supply_chain', emoji: '🔗', label: 'Supply Chain', description: 'Evaluating supply chain resilience, vendor risk, and scalability' },
+  { role: 'growth', emoji: '📈', label: 'Growth Strategist', description: 'Analyzing GTM strategy, channels, pricing, and growth levers' },
+  { role: 'cybersecurity', emoji: '🛡️', label: 'Cybersecurity', description: 'Assessing security posture, compliance, and threat readiness' },
+  { role: 'fund_fit', emoji: '🏦', label: 'Fund Fit', description: 'Evaluating deal fit, return profile, and fund construction impact' },
 ];
 
 const PIPELINE_STEPS = [
@@ -25,21 +32,25 @@ const PIPELINE_STEPS = [
   { key: 'web', label: 'Web research', description: 'Searching news, financial data, competitors, and industry reports' },
   { key: 'business', label: 'Business analysis', description: '4 business agents analyzing in parallel' },
   { key: 'science', label: 'Science analysis', description: '6 PhD science experts analyzing in parallel' },
-  { key: 'summary', label: 'Executive summary', description: 'Synthesizing findings from all 10 agents' },
+  { key: 'deal', label: 'Deal analysis', description: '7 deal experts analyzing in parallel' },
+  { key: 'summary', label: 'Executive summary', description: 'Synthesizing findings from all 17 agents' },
   { key: 'qa', label: 'Quality review', description: 'Cross-checking accuracy and consistency' },
   { key: 'gaps', label: 'Gap analysis', description: 'Identifying what additional information would strengthen the report' },
 ];
 
 function getPipelineStep(analysis: Analysis): number {
-  if (analysis.status === 'complete') return 7;
+  if (analysis.status === 'complete') return 8;
   const step = analysis.currentStep || '';
-  if (step.includes('gap') || step.includes('Gap')) return 6;
-  if (step.includes('quality') || step.includes('Quality') || step.includes('review')) return 5;
-  if (step.includes('summary') || step.includes('Summary')) return 4;
+  if (step.includes('gap') || step.includes('Gap')) return 7;
+  if (step.includes('quality') || step.includes('Quality') || step.includes('review')) return 6;
+  if (step.includes('summary') || step.includes('Summary')) return 5;
+  if (step.includes('deal') || step.includes('Deal')) return 4;
   if (step.includes('science') || step.includes('Science')) return 3;
   const doneCount = analysis.agents.filter(a => a.status === 'complete' || a.status === 'running').length;
   if (step.includes('agent') || step.includes('Agent') || doneCount > 0) {
-    // If science agents are running/complete, we're in science phase
+    const dealRoles = ['legal', 'geopolitical', 'team', 'supply_chain', 'growth', 'cybersecurity', 'fund_fit'];
+    const dealActive = analysis.agents.some(a => dealRoles.includes(a.role) && (a.status === 'running' || a.status === 'complete'));
+    if (dealActive) return 4;
     const scienceRoles = ['aerospace', 'nuclear', 'biology', 'ai_expert', 'mechanical', 'physics'];
     const scienceActive = analysis.agents.some(a => scienceRoles.includes(a.role) && (a.status === 'running' || a.status === 'complete'));
     return scienceActive ? 3 : 2;
