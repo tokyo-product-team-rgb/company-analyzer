@@ -32,7 +32,7 @@ export async function runAgent(role: AgentRole, companyInfo: string, webContext:
   const config = AGENT_CONFIG[role];
 
   let userPrompt = `## Company Information\n${companyInfo}\n\n## Web Research Context\n${webContext}`;
-  if (role === 'summary' && otherAnalyses) {
+  if ((role === 'summary' || role === 'qa') && otherAnalyses) {
     userPrompt += `\n\n## Other Agent Analyses\n${otherAnalyses}`;
   }
 
