@@ -92,9 +92,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       };
     }
 
-    // Mark skipped agents immediately
-    const scienceAndDealRoles: AgentRole[] = ['aerospace', 'nuclear', 'biology', 'ai_expert', 'mechanical', 'physics', 'legal', 'geopolitical', 'team', 'supply_chain', 'growth', 'cybersecurity', 'fund_fit'];
-    for (const role of scienceAndDealRoles) {
+    // Mark skipped agents immediately — ALL 17 specialist agents follow manager's decision
+    const allSpecialistRoles: AgentRole[] = ['researcher', 'strategist', 'sector', 'financial', 'aerospace', 'nuclear', 'biology', 'ai_expert', 'mechanical', 'physics', 'legal', 'geopolitical', 'team', 'supply_chain', 'growth', 'cybersecurity', 'fund_fit'];
+    for (const role of allSpecialistRoles) {
       if (!selectedRoles.has(role)) {
         const idx = analysis.agents.findIndex(a => a.role === role);
         if (idx >= 0) {
@@ -108,75 +108,43 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     analysis.currentStep = 'Running expert agents...';
     await safeSave(analysis);
 
-    // Step 3: Run 4 business agents in parallel (always run)
-    const businessRoles: AgentRole[] = ['researcher', 'strategist', 'sector', 'financial'];
+    // Helper to run a batch of selected agents in parallel
+    const runBatch = async (roles: AgentRole[], stepLabel: string) => {
+      const selected = roles.filter(role => selectedRoles.has(role));
+      if (selected.length === 0) return [];
 
-    for (const role of businessRoles) {
-      const idx = analysis.agents.findIndex(a => a.role === role);
-      analysis.agents[idx].status = 'running';
-    }
-    await safeSave(analysis);
-
-    const businessResults = await Promise.all(
-      businessRoles.map(async (role) => {
-        const result = await runAgent(role, companyInfo, webContext);
+      analysis.currentStep = stepLabel;
+      for (const role of selected) {
         const idx = analysis.agents.findIndex(a => a.role === role);
-        analysis.agents[idx] = result;
-        analysis.updatedAt = new Date().toISOString();
-        const doneCount = analysis.agents.filter(a => a.status === 'complete').length;
-        analysis.currentStep = `${doneCount}/${analysis.agents.length} agents complete`;
-        await safeSave(analysis);
-        return result;
-      })
-    );
+        if (idx >= 0) analysis.agents[idx].status = 'running';
+      }
+      await safeSave(analysis);
+
+      return Promise.all(
+        selected.map(async (role) => {
+          const result = await runAgent(role, companyInfo, webContext);
+          const idx = analysis.agents.findIndex(a => a.role === role);
+          if (idx >= 0) analysis.agents[idx] = result;
+          analysis.updatedAt = new Date().toISOString();
+          const doneCount = analysis.agents.filter(a => a.status === 'complete' || a.status === 'skipped').length;
+          analysis.currentStep = `${doneCount}/${analysis.agents.length} agents complete`;
+          await safeSave(analysis);
+          return result;
+        })
+      );
+    };
+
+    // Step 3: Run selected business agents in parallel
+    const businessRoles: AgentRole[] = ['researcher', 'strategist', 'sector', 'financial'];
+    const businessResults = await runBatch(businessRoles, 'Running business expert agents...');
 
     // Step 4: Run selected science agents in parallel
-    analysis.currentStep = 'Running science expert agents...';
     const allScienceRoles: AgentRole[] = ['aerospace', 'nuclear', 'biology', 'ai_expert', 'mechanical', 'physics'];
-    const scienceRoles = allScienceRoles.filter(role => selectedRoles.has(role));
-
-    for (const role of scienceRoles) {
-      const idx = analysis.agents.findIndex(a => a.role === role);
-      if (idx >= 0) analysis.agents[idx].status = 'running';
-    }
-    await safeSave(analysis);
-
-    const scienceResults = await Promise.all(
-      scienceRoles.map(async (role) => {
-        const result = await runAgent(role, companyInfo, webContext);
-        const idx = analysis.agents.findIndex(a => a.role === role);
-        if (idx >= 0) analysis.agents[idx] = result;
-        analysis.updatedAt = new Date().toISOString();
-        const doneCount = analysis.agents.filter(a => a.status === 'complete' || a.status === 'skipped').length;
-        analysis.currentStep = `${doneCount}/${analysis.agents.length} agents complete`;
-        await safeSave(analysis);
-        return result;
-      })
-    );
+    const scienceResults = await runBatch(allScienceRoles, 'Running science expert agents...');
 
     // Step 5: Run selected deal agents in parallel
-    analysis.currentStep = 'Running deal analysis agents...';
     const allDealRoles: AgentRole[] = ['legal', 'geopolitical', 'team', 'supply_chain', 'growth', 'cybersecurity', 'fund_fit'];
-    const dealRoles = allDealRoles.filter(role => selectedRoles.has(role));
-
-    for (const role of dealRoles) {
-      const idx = analysis.agents.findIndex(a => a.role === role);
-      if (idx >= 0) analysis.agents[idx].status = 'running';
-    }
-    await safeSave(analysis);
-
-    const dealResults = await Promise.all(
-      dealRoles.map(async (role) => {
-        const result = await runAgent(role, companyInfo, webContext);
-        const idx = analysis.agents.findIndex(a => a.role === role);
-        if (idx >= 0) analysis.agents[idx] = result;
-        analysis.updatedAt = new Date().toISOString();
-        const doneCount = analysis.agents.filter(a => a.status === 'complete' || a.status === 'skipped').length;
-        analysis.currentStep = `${doneCount}/${analysis.agents.length} agents complete`;
-        await safeSave(analysis);
-        return result;
-      })
-    );
+    const dealResults = await runBatch(allDealRoles, 'Running deal analysis agents...');
 
     // Step 6: Executive summary (synthesizes ALL agents)
     analysis.currentStep = 'Writing executive summary...';

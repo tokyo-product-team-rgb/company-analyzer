@@ -16,7 +16,13 @@ You MUST return ONLY valid JSON (no markdown, no explanation) with this exact st
   ]
 }
 
-The specialist agents you choose from (science + deal agents only — business agents always run):
+You choose from ALL 17 specialist agents below. Every one must appear in either "selected" or "skipped".
+
+BUSINESS AGENTS (select for most companies, but skip if truly irrelevant):
+- researcher: PhD polymath researcher — deep scientific/technical analysis across all domains. Skip only if the company has zero technical or scientific dimension.
+- strategist: McKinsey-level strategy — Porter's Five Forces, TAM/SAM/SOM, SWOT, competitive positioning. Skip only if there is virtually no strategic context available.
+- sector: Deep sector/industry expert — industry structure, trends, benchmarks, regulatory landscape. Skip only if the company's sector/industry is completely unidentifiable.
+- financial: CFA-level financial analyst — unit economics, margins, valuation, growth metrics. Skip only if there is absolutely zero financial data or revenue model to analyze.
 
 SCIENCE AGENTS:
 - aerospace: Aerospace/propulsion/aviation/defense/space/UAV technology
@@ -39,8 +45,9 @@ RULES:
 1. Select agents whose domain is DIRECTLY relevant to the company
 2. Skip agents whose domain has NO meaningful connection to the company
 3. When in doubt, SELECT the agent (false negatives are worse than false positives)
-4. Be concise in reasons (max 15 words each)
-5. Every agent from the list above must appear in either selected or skipped`,
+4. The 4 business agents (researcher, strategist, sector, financial) should be selected for MOST companies — only skip them in rare cases where their domain is genuinely irrelevant
+5. Be concise in reasons (max 15 words each)
+6. Every agent from the list above must appear in either selected or skipped`,
   },
 
   researcher: {

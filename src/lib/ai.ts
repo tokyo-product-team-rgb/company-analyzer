@@ -54,7 +54,7 @@ export async function runManagerAgent(companyInfo: string, webContext: string): 
 }
 
 function getDefaultManagerDecision(): ManagerDecision {
-  const allRoles = ['aerospace', 'nuclear', 'biology', 'ai_expert', 'mechanical', 'physics', 'legal', 'geopolitical', 'team', 'supply_chain', 'growth', 'cybersecurity', 'fund_fit'];
+  const allRoles = ['researcher', 'strategist', 'sector', 'financial', 'aerospace', 'nuclear', 'biology', 'ai_expert', 'mechanical', 'physics', 'legal', 'geopolitical', 'team', 'supply_chain', 'growth', 'cybersecurity', 'fund_fit'];
   return {
     selected: allRoles.map(role => ({ role, reason: 'Default — manager agent unavailable' })),
     skipped: [],
