@@ -6,10 +6,10 @@ import { enrichCompany } from '@/lib/web-search';
 
 export const maxDuration = 300;
 
-// Non-fatal save — log errors but don't crash
+// Non-fatal intermediate save — skip index updates to reduce blob API calls
 async function safeSave(analysis: Parameters<typeof saveAnalysis>[0]) {
   try {
-    await saveAnalysis(analysis);
+    await saveAnalysis(analysis, false); // false = skip index update
   } catch (e) {
     console.error('Save failed (non-fatal):', e);
   }
@@ -98,18 +98,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const gapQuestions = await generateGapQuestions(companyInfo, otherAnalyses);
     analysis.gapQuestions = gapQuestions;
 
-    // Done!
+    // Done! Final save WITH index update
     analysis.status = 'complete';
     analysis.currentStep = undefined;
     analysis.updatedAt = new Date().toISOString();
-    await saveAnalysis(analysis); // Final save — use real save, not safe
+    await saveAnalysis(analysis, true); // true = update index
 
     return NextResponse.json({ status: 'complete' });
   } catch (error) {
     console.error('Process error:', error);
     analysis.status = 'error';
     analysis.currentStep = 'Analysis failed — ' + (error instanceof Error ? error.message : 'Unknown error');
-    try { await saveAnalysis(analysis); } catch { /* last resort */ }
+    try { await saveAnalysis(analysis, true); } catch { /* last resort */ }
     return NextResponse.json({ error: 'Processing failed' }, { status: 500 });
   }
 }

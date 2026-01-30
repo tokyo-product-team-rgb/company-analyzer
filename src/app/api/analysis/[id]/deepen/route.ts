@@ -85,11 +85,11 @@ async function deepenAnalysis(
 
     const companyInfo = `Company: ${companyName}\n\n${originalInput}\n\n## Additional Information Provided:\n${additionalContext}`;
 
-    // Update status
+    // Update status (skip index for intermediate save)
     const analysisBeforeAgents = await getAnalysis(id);
     if (analysisBeforeAgents) {
       analysisBeforeAgents.currentStep = 'Running expert agents with new context...';
-      await saveAnalysis(analysisBeforeAgents);
+      await saveAnalysis(analysisBeforeAgents, false);
     }
 
     const roles: AgentRole[] = ['researcher', 'strategist', 'sector', 'financial'];
