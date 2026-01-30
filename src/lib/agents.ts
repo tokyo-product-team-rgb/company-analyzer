@@ -107,7 +107,6 @@ Use tables extensively for financial data. All numbers should be clearly formatt
 Write for a busy executive — clear, concise, but substantive. This is the first thing they'll read.
 Use markdown tables and formatting for scanability. 500-700 words.`,
   },
-};
 
   qa: {
     title: 'Quality Reviewer',
