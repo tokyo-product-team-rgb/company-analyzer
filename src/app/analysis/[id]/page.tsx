@@ -12,22 +12,38 @@ const TAB_ORDER: { role: AgentRole; emoji: string; label: string; description: s
   { role: 'strategist', emoji: '📊', label: 'McKinsey Strategist', description: 'Applying Porter\'s Five Forces, SWOT, TAM/SAM frameworks' },
   { role: 'sector', emoji: '🏭', label: 'Sector Expert', description: 'Deep-diving into industry trends, benchmarks, and regulations' },
   { role: 'financial', emoji: '💰', label: 'Financial Analyst', description: 'Evaluating unit economics, margins, and valuation comps' },
+  { role: 'aerospace', emoji: '🚀', label: 'Aerospace Engineer', description: 'Evaluating propulsion, aerodynamics, and space/defense tech' },
+  { role: 'nuclear', emoji: '⚛️', label: 'Nuclear Engineer', description: 'Evaluating fission/fusion tech, reactor design, and safety' },
+  { role: 'biology', emoji: '🧬', label: 'Biologist', description: 'Evaluating biotech, drug pipelines, CRISPR, and clinical trials' },
+  { role: 'ai_expert', emoji: '🤖', label: 'AI/ML Scientist', description: 'Evaluating model architectures, data moats, and AI safety' },
+  { role: 'mechanical', emoji: '⚙️', label: 'Mechanical Engineer', description: 'Evaluating manufacturing, robotics, and production scalability' },
+  { role: 'physics', emoji: '🔬', label: 'Physicist', description: 'Evaluating scientific claims, quantum tech, and physics soundness' },
 ];
 
 const PIPELINE_STEPS = [
   { key: 'upload', label: 'Input received', description: 'Company data and files ingested' },
   { key: 'web', label: 'Web research', description: 'Searching news, financial data, competitors, and industry reports' },
-  { key: 'agents', label: 'Expert analysis', description: '4 specialist agents analyzing in parallel' },
-  { key: 'summary', label: 'Executive summary', description: 'Synthesizing findings from all agents' },
+  { key: 'business', label: 'Business analysis', description: '4 business agents analyzing in parallel' },
+  { key: 'science', label: 'Science analysis', description: '6 PhD science experts analyzing in parallel' },
+  { key: 'summary', label: 'Executive summary', description: 'Synthesizing findings from all 10 agents' },
+  { key: 'qa', label: 'Quality review', description: 'Cross-checking accuracy and consistency' },
   { key: 'gaps', label: 'Gap analysis', description: 'Identifying what additional information would strengthen the report' },
 ];
 
 function getPipelineStep(analysis: Analysis): number {
-  if (analysis.status === 'complete') return 5;
+  if (analysis.status === 'complete') return 7;
   const step = analysis.currentStep || '';
-  if (step.includes('gap') || step.includes('Gap')) return 4;
-  if (step.includes('summary') || step.includes('Summary')) return 3;
-  if (step.includes('agent') || step.includes('Agent') || step.includes('/5')) return 2;
+  if (step.includes('gap') || step.includes('Gap')) return 6;
+  if (step.includes('quality') || step.includes('Quality') || step.includes('review')) return 5;
+  if (step.includes('summary') || step.includes('Summary')) return 4;
+  if (step.includes('science') || step.includes('Science')) return 3;
+  const doneCount = analysis.agents.filter(a => a.status === 'complete' || a.status === 'running').length;
+  if (step.includes('agent') || step.includes('Agent') || doneCount > 0) {
+    // If science agents are running/complete, we're in science phase
+    const scienceRoles = ['aerospace', 'nuclear', 'biology', 'ai_expert', 'mechanical', 'physics'];
+    const scienceActive = analysis.agents.some(a => scienceRoles.includes(a.role) && (a.status === 'running' || a.status === 'complete'));
+    return scienceActive ? 3 : 2;
+  }
   if (step.includes('web') || step.includes('Web') || step.includes('Search')) return 1;
   return 0;
 }
@@ -270,11 +286,11 @@ export default function AnalysisPage() {
             <div className="h-1.5 bg-white rounded-full overflow-hidden">
               <div
                 className="h-full bg-accent rounded-full transition-all duration-700 ease-out"
-                style={{ width: `${(analysis.agents.filter(a => a.status === 'complete').length / 5) * 100}%` }}
+                style={{ width: `${(analysis.agents.filter(a => a.status === 'complete').length / analysis.agents.length) * 100}%` }}
               />
             </div>
             <p className="text-text-muted text-xs mt-2 text-right">
-              {analysis.agents.filter(a => a.status === 'complete').length} of 5 agents complete
+              {analysis.agents.filter(a => a.status === 'complete').length} of {analysis.agents.length} agents complete
             </p>
           </div>
         </div>

@@ -68,17 +68,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     analysis.currentStep = 'Running expert agents...';
     await safeSave(analysis);
 
-    // Step 2: Run 4 specialist agents in parallel
-    const roles: AgentRole[] = ['researcher', 'strategist', 'sector', 'financial'];
+    // Step 2: Run 4 business agents in parallel
+    const businessRoles: AgentRole[] = ['researcher', 'strategist', 'sector', 'financial'];
 
-    for (const role of roles) {
+    for (const role of businessRoles) {
       const idx = analysis.agents.findIndex(a => a.role === role);
       analysis.agents[idx].status = 'running';
     }
     await safeSave(analysis);
 
-    const results = await Promise.all(
-      roles.map(async (role) => {
+    const businessResults = await Promise.all(
+      businessRoles.map(async (role) => {
         const result = await runAgent(role, companyInfo, webContext);
         const idx = analysis.agents.findIndex(a => a.role === role);
         analysis.agents[idx] = result;
@@ -90,13 +90,37 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       })
     );
 
-    // Step 3: Executive summary
+    // Step 3: Run 6 science agents in parallel
+    analysis.currentStep = 'Running science expert agents...';
+    const scienceRoles: AgentRole[] = ['aerospace', 'nuclear', 'biology', 'ai_expert', 'mechanical', 'physics'];
+
+    for (const role of scienceRoles) {
+      const idx = analysis.agents.findIndex(a => a.role === role);
+      if (idx >= 0) analysis.agents[idx].status = 'running';
+    }
+    await safeSave(analysis);
+
+    const scienceResults = await Promise.all(
+      scienceRoles.map(async (role) => {
+        const result = await runAgent(role, companyInfo, webContext);
+        const idx = analysis.agents.findIndex(a => a.role === role);
+        if (idx >= 0) analysis.agents[idx] = result;
+        analysis.updatedAt = new Date().toISOString();
+        const doneCount = analysis.agents.filter(a => a.status === 'complete').length;
+        analysis.currentStep = `${doneCount}/${analysis.agents.length} agents complete`;
+        await safeSave(analysis);
+        return result;
+      })
+    );
+
+    // Step 4: Executive summary (synthesizes ALL agents)
     analysis.currentStep = 'Writing executive summary...';
     const summaryIdx = analysis.agents.findIndex(a => a.role === 'summary');
     analysis.agents[summaryIdx].status = 'running';
     await safeSave(analysis);
 
-    const otherAnalyses = results
+    const allAgentResults = [...businessResults, ...scienceResults];
+    const otherAnalyses = allAgentResults
       .filter(r => r.status === 'complete')
       .map(r => `## ${r.emoji} ${r.title}\n${r.content}`)
       .join('\n\n---\n\n');
@@ -105,7 +129,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     analysis.agents[summaryIdx] = summary;
     await safeSave(analysis);
 
-    // Step 4: Quality review
+    // Step 5: Quality review
     analysis.currentStep = 'Running quality review...';
     const qaIdx = analysis.agents.findIndex(a => a.role === 'qa');
     if (qaIdx >= 0) {
@@ -124,7 +148,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       await safeSave(analysis);
     }
 
-    // Step 5: Gap questions
+    // Step 6: Gap questions
     analysis.currentStep = 'Identifying knowledge gaps...';
     await safeSave(analysis);
 

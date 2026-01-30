@@ -1,4 +1,4 @@
-export type AgentRole = 'researcher' | 'strategist' | 'sector' | 'financial' | 'summary' | 'qa';
+export type AgentRole = 'researcher' | 'strategist' | 'sector' | 'financial' | 'aerospace' | 'nuclear' | 'biology' | 'ai_expert' | 'mechanical' | 'physics' | 'summary' | 'qa';
 
 export interface AgentAnalysis {
   role: AgentRole;
