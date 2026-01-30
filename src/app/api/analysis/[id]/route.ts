@@ -10,6 +10,16 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Analysis not found' }, { status: 404 });
   }
 
+  // Fix mismarked analyses — if status is "complete" but all agents errored, correct it
+  if (analysis.status === 'complete') {
+    const completedAgents = analysis.agents.filter(a => a.status === 'complete');
+    if (completedAgents.length === 0 && analysis.agents.length > 0) {
+      analysis.status = 'error';
+      analysis.currentStep = 'Analysis failed — all agents encountered errors';
+      await saveAnalysis(analysis, true);
+    }
+  }
+
   // Detect stale processing — mark as error if stuck too long
   if (analysis.status === 'processing' && analysis.processStartedAt) {
     const elapsed = Date.now() - new Date(analysis.processStartedAt).getTime();

@@ -84,7 +84,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         analysis.agents[idx] = result;
         analysis.updatedAt = new Date().toISOString();
         const doneCount = analysis.agents.filter(a => a.status === 'complete').length;
-        analysis.currentStep = `${doneCount}/5 agents complete`;
+        analysis.currentStep = `${doneCount}/${analysis.agents.length} agents complete`;
         await safeSave(analysis);
         return result;
       })
@@ -105,16 +105,48 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     analysis.agents[summaryIdx] = summary;
     await safeSave(analysis);
 
-    // Step 4: Gap questions
+    // Step 4: Quality review
+    analysis.currentStep = 'Running quality review...';
+    const qaIdx = analysis.agents.findIndex(a => a.role === 'qa');
+    if (qaIdx >= 0) {
+      analysis.agents[qaIdx].status = 'running';
+      await safeSave(analysis);
+
+      const allAnalyses = analysis.agents
+        .filter(a => a.status === 'complete' && a.role !== 'qa')
+        .map(r => `## ${r.emoji} ${r.title}\n${r.content}`)
+        .join('\n\n---\n\n');
+
+      const qaResult = await runAgent('qa', companyInfo, webContext, allAnalyses);
+      analysis.agents[qaIdx] = qaResult;
+      const doneCount = analysis.agents.filter(a => a.status === 'complete').length;
+      analysis.currentStep = `${doneCount}/${analysis.agents.length} agents complete`;
+      await safeSave(analysis);
+    }
+
+    // Step 5: Gap questions
     analysis.currentStep = 'Identifying knowledge gaps...';
     await safeSave(analysis);
 
     const gapQuestions = await generateGapQuestions(companyInfo, otherAnalyses);
     analysis.gapQuestions = gapQuestions;
 
-    // Done! Final save WITH index update
-    analysis.status = 'complete';
-    analysis.currentStep = undefined;
+    // Check if any agents errored — if most failed, mark overall as error
+    const erroredAgents = analysis.agents.filter(a => a.status === 'error');
+    const completedAgents = analysis.agents.filter(a => a.status === 'complete');
+
+    if (completedAgents.length === 0) {
+      // All agents failed — mark as error
+      analysis.status = 'error';
+      analysis.currentStep = `Analysis failed — all agents encountered errors`;
+    } else if (erroredAgents.length > 0) {
+      // Some agents failed — still mark complete but could revisit
+      analysis.status = 'complete';
+      analysis.currentStep = undefined;
+    } else {
+      analysis.status = 'complete';
+      analysis.currentStep = undefined;
+    }
     analysis.processStartedAt = undefined;
     analysis.updatedAt = new Date().toISOString();
     // Strip inputFull from blob — no longer needed after processing

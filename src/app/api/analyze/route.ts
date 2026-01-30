@@ -90,6 +90,7 @@ export async function POST(req: NextRequest) {
         { role: 'sector', title: 'Sector Expert', emoji: '🏭', content: '', status: 'pending' },
         { role: 'financial', title: 'Financial Analyst', emoji: '💰', content: '', status: 'pending' },
         { role: 'summary', title: 'Executive Summary', emoji: '📋', content: '', status: 'pending' },
+        { role: 'qa', title: 'Quality Reviewer', emoji: '✅', content: '', status: 'pending' },
       ],
       gapQuestions: [],
       deepenHistory: [],
