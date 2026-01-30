@@ -1,12 +1,23 @@
-export type AgentRole = 'researcher' | 'strategist' | 'sector' | 'financial' | 'aerospace' | 'nuclear' | 'biology' | 'ai_expert' | 'mechanical' | 'physics' | 'legal' | 'geopolitical' | 'team' | 'supply_chain' | 'growth' | 'cybersecurity' | 'fund_fit' | 'summary' | 'qa';
+export type AgentRole = 'manager' | 'researcher' | 'strategist' | 'sector' | 'financial' | 'aerospace' | 'nuclear' | 'biology' | 'ai_expert' | 'mechanical' | 'physics' | 'legal' | 'geopolitical' | 'team' | 'supply_chain' | 'growth' | 'cybersecurity' | 'fund_fit' | 'summary' | 'qa';
 
 export interface AgentAnalysis {
   role: AgentRole;
   title: string;
   emoji: string;
   content: string;
-  status: 'pending' | 'running' | 'complete' | 'error';
+  status: 'pending' | 'running' | 'complete' | 'error' | 'skipped';
   error?: string;
+  skippedReason?: string;
+}
+
+export interface ManagerAgentSelection {
+  role: string;
+  reason: string;
+}
+
+export interface ManagerDecision {
+  selected: ManagerAgentSelection[];
+  skipped: ManagerAgentSelection[];
 }
 
 export interface GapQuestion {
@@ -29,6 +40,7 @@ export interface Analysis {
   processStartedAt?: string; // tracks when processing actually began
   agents: AgentAnalysis[];
   gapQuestions: GapQuestion[];
+  managerDecision?: ManagerDecision;
   webEnrichment?: string;
   deepenHistory: { answers: Record<string, string>; timestamp: string }[];
 }

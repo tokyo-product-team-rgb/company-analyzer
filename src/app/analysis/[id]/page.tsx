@@ -8,6 +8,7 @@ import GapAnalysis from '@/components/GapAnalysis';
 
 const TAB_ORDER: { role: AgentRole; emoji: string; label: string; description: string }[] = [
   { role: 'summary', emoji: '📋', label: 'Executive Summary', description: 'Synthesizing all agent findings into a unified overview' },
+  { role: 'manager', emoji: '🧠', label: 'Manager Triage', description: 'Intelligent agent selection based on company relevance' },
   { role: 'researcher', emoji: '🎓', label: 'PhD Polymath', description: 'Multi-disciplinary scientific analysis across all relevant domains' },
   { role: 'strategist', emoji: '📊', label: 'McKinsey Strategist', description: 'Applying Porter\'s Five Forces, SWOT, TAM/SAM frameworks' },
   { role: 'sector', emoji: '🏭', label: 'Sector Expert', description: 'Deep-diving into industry trends, benchmarks, and regulations' },
@@ -30,31 +31,33 @@ const TAB_ORDER: { role: AgentRole; emoji: string; label: string; description: s
 const PIPELINE_STEPS = [
   { key: 'upload', label: 'Input received', description: 'Company data and files ingested' },
   { key: 'web', label: 'Web research', description: 'Searching news, financial data, competitors, and industry reports' },
+  { key: 'manager', label: 'Manager triage', description: 'Selecting relevant specialist agents for this company' },
   { key: 'business', label: 'Business analysis', description: '4 business agents analyzing in parallel' },
-  { key: 'science', label: 'Science analysis', description: '6 PhD science experts analyzing in parallel' },
-  { key: 'deal', label: 'Deal analysis', description: '7 deal experts analyzing in parallel' },
-  { key: 'summary', label: 'Executive summary', description: 'Synthesizing findings from all 17 agents' },
+  { key: 'science', label: 'Science analysis', description: 'Selected PhD science experts analyzing in parallel' },
+  { key: 'deal', label: 'Deal analysis', description: 'Selected deal experts analyzing in parallel' },
+  { key: 'summary', label: 'Executive summary', description: 'Synthesizing findings from all agents' },
   { key: 'qa', label: 'Quality review', description: 'Cross-checking accuracy and consistency' },
   { key: 'gaps', label: 'Gap analysis', description: 'Identifying what additional information would strengthen the report' },
 ];
 
 function getPipelineStep(analysis: Analysis): number {
-  if (analysis.status === 'complete') return 8;
+  if (analysis.status === 'complete') return 9;
   const step = analysis.currentStep || '';
-  if (step.includes('gap') || step.includes('Gap')) return 7;
-  if (step.includes('quality') || step.includes('Quality') || step.includes('review')) return 6;
-  if (step.includes('summary') || step.includes('Summary')) return 5;
-  if (step.includes('deal') || step.includes('Deal')) return 4;
-  if (step.includes('science') || step.includes('Science')) return 3;
-  const doneCount = analysis.agents.filter(a => a.status === 'complete' || a.status === 'running').length;
-  if (step.includes('agent') || step.includes('Agent') || doneCount > 0) {
+  if (step.includes('gap') || step.includes('Gap')) return 8;
+  if (step.includes('quality') || step.includes('Quality') || step.includes('review')) return 7;
+  if (step.includes('summary') || step.includes('Summary')) return 6;
+  if (step.includes('deal') || step.includes('Deal')) return 5;
+  if (step.includes('science') || step.includes('Science')) return 4;
+  const doneCount = analysis.agents.filter(a => a.status === 'complete' || a.status === 'running' || a.status === 'skipped').length;
+  if (step.includes('agent') || step.includes('Agent') || step.includes('expert') || doneCount > 1) {
     const dealRoles = ['legal', 'geopolitical', 'team', 'supply_chain', 'growth', 'cybersecurity', 'fund_fit'];
     const dealActive = analysis.agents.some(a => dealRoles.includes(a.role) && (a.status === 'running' || a.status === 'complete'));
-    if (dealActive) return 4;
+    if (dealActive) return 5;
     const scienceRoles = ['aerospace', 'nuclear', 'biology', 'ai_expert', 'mechanical', 'physics'];
     const scienceActive = analysis.agents.some(a => scienceRoles.includes(a.role) && (a.status === 'running' || a.status === 'complete'));
-    return scienceActive ? 3 : 2;
+    return scienceActive ? 4 : 3;
   }
+  if (step.includes('Manager') || step.includes('manager') || step.includes('triag')) return 2;
   if (step.includes('web') || step.includes('Web') || step.includes('Search')) return 1;
   return 0;
 }
@@ -255,14 +258,17 @@ export default function AnalysisPage() {
                 <div key={tab.role} className={`flex items-start gap-3 px-4 py-3 rounded-xl border transition-colors ${
                   status === 'running' ? 'border-accent/40 bg-white' :
                   status === 'complete' ? 'border-success/30 bg-white' :
+                  status === 'skipped' ? 'border-border bg-gray-50 opacity-60' :
                   'border-border bg-white/60'
                 }`}>
-                  <span className="text-xl mt-0.5">{tab.emoji}</span>
+                  <span className={`text-xl mt-0.5 ${status === 'skipped' ? 'grayscale' : ''}`}>{tab.emoji}</span>
                   <div className="flex-1 min-w-0">
-                    <p className={`font-medium text-sm ${status === 'pending' ? 'text-text-muted' : 'text-text-primary'}`}>
+                    <p className={`font-medium text-sm ${status === 'pending' ? 'text-text-muted' : status === 'skipped' ? 'text-text-muted line-through' : 'text-text-primary'}`}>
                       {tab.label}
                     </p>
-                    <p className="text-xs text-text-muted mt-0.5">{tab.description}</p>
+                    <p className="text-xs text-text-muted mt-0.5">
+                      {status === 'skipped' && agent?.skippedReason ? agent.skippedReason : tab.description}
+                    </p>
                   </div>
                   <div className="flex-shrink-0 mt-0.5">
                     {status === 'complete' && (
@@ -279,6 +285,9 @@ export default function AnalysisPage() {
                         </span>
                         Working...
                       </span>
+                    )}
+                    {status === 'skipped' && (
+                      <span className="text-text-muted text-xs italic">Skipped</span>
                     )}
                     {status === 'pending' && (
                       <span className="text-text-muted text-xs">Queued</span>
@@ -297,11 +306,12 @@ export default function AnalysisPage() {
             <div className="h-1.5 bg-white rounded-full overflow-hidden">
               <div
                 className="h-full bg-accent rounded-full transition-all duration-700 ease-out"
-                style={{ width: `${(analysis.agents.filter(a => a.status === 'complete').length / analysis.agents.length) * 100}%` }}
+                style={{ width: `${(analysis.agents.filter(a => a.status === 'complete' || a.status === 'skipped').length / analysis.agents.length) * 100}%` }}
               />
             </div>
             <p className="text-text-muted text-xs mt-2 text-right">
               {analysis.agents.filter(a => a.status === 'complete').length} of {analysis.agents.length} agents complete
+              {analysis.agents.filter(a => a.status === 'skipped').length > 0 && ` · ${analysis.agents.filter(a => a.status === 'skipped').length} skipped`}
             </p>
           </div>
         </div>
@@ -326,6 +336,8 @@ export default function AnalysisPage() {
       <div className="flex flex-wrap gap-2 mb-6 overflow-x-auto pb-1">
         {TAB_ORDER.map(tab => {
           const isActive = activeTab === tab.role;
+          const agent = analysis.agents.find(a => a.role === tab.role);
+          const isSkipped = agent?.status === 'skipped';
           return (
             <button
               key={tab.role}
@@ -333,11 +345,13 @@ export default function AnalysisPage() {
               className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-sm whitespace-nowrap transition-colors border ${
                 isActive
                   ? 'bg-text-primary text-white border-text-primary'
+                  : isSkipped
+                  ? 'bg-gray-50 text-text-muted border-border opacity-60 hover:opacity-80'
                   : 'bg-white text-text-secondary border-border hover:border-border-bright'
               }`}
             >
-              <span>{tab.emoji}</span>
-              <span className="font-medium">{tab.label}</span>
+              <span className={isSkipped ? 'grayscale' : ''}>{tab.emoji}</span>
+              <span className={`font-medium ${isSkipped ? 'line-through' : ''}`}>{tab.label}</span>
             </button>
           );
         })}
@@ -356,6 +370,24 @@ export default function AnalysisPage() {
           </button>
         )}
       </div>
+
+      {/* Manager Decision Banner */}
+      {analysis.managerDecision && (
+        <div className="bg-bg-secondary border border-border rounded-xl p-4 mb-6">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-lg">🧠</span>
+            <span className="font-semibold text-sm text-text-primary">Manager Triage</span>
+            <span className="text-xs text-text-muted ml-auto">
+              Selected {analysis.managerDecision.selected.length} of {analysis.managerDecision.selected.length + analysis.managerDecision.skipped.length} specialist agents
+            </span>
+          </div>
+          {analysis.managerDecision.skipped.length > 0 && (
+            <p className="text-xs text-text-muted mt-1">
+              Skipped: {analysis.managerDecision.skipped.map(s => s.role).join(', ')}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Content area */}
       <div className="flex flex-col gap-6">

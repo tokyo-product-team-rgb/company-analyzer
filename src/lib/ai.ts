@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { AgentRole, AgentAnalysis, GapQuestion } from './types';
+import { AgentRole, AgentAnalysis, GapQuestion, ManagerDecision } from './types';
 import { AGENT_CONFIG, getGapAnalysisPrompt } from './agents';
 
 function getClient(): Anthropic | null {
@@ -26,6 +26,39 @@ async function callClaude(systemPrompt: string, userPrompt: string): Promise<str
 
   const textBlocks = message.content.filter(b => b.type === 'text');
   return textBlocks.map(b => b.text).join('\n');
+}
+
+export async function runManagerAgent(companyInfo: string, webContext: string): Promise<ManagerDecision> {
+  const config = AGENT_CONFIG['manager'];
+  const userPrompt = `## Company Information\n${companyInfo}\n\n## Web Research Context\n${webContext}\n\nAnalyze this company and return JSON selecting which specialist agents to run.`;
+
+  try {
+    const raw = await callClaude(config.systemPrompt, userPrompt);
+    // Extract JSON from response (handle possible markdown wrapping)
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      console.error('Manager agent returned no JSON, selecting all agents');
+      return getDefaultManagerDecision();
+    }
+    const parsed = JSON.parse(jsonMatch[0]) as ManagerDecision;
+    // Validate structure
+    if (!Array.isArray(parsed.selected) || !Array.isArray(parsed.skipped)) {
+      console.error('Manager agent returned invalid structure, selecting all agents');
+      return getDefaultManagerDecision();
+    }
+    return parsed;
+  } catch (error) {
+    console.error('Manager agent failed:', error);
+    return getDefaultManagerDecision();
+  }
+}
+
+function getDefaultManagerDecision(): ManagerDecision {
+  const allRoles = ['aerospace', 'nuclear', 'biology', 'ai_expert', 'mechanical', 'physics', 'legal', 'geopolitical', 'team', 'supply_chain', 'growth', 'cybersecurity', 'fund_fit'];
+  return {
+    selected: allRoles.map(role => ({ role, reason: 'Default — manager agent unavailable' })),
+    skipped: [],
+  };
 }
 
 export async function runAgent(role: AgentRole, companyInfo: string, webContext: string, otherAnalyses?: string): Promise<AgentAnalysis> {

@@ -61,6 +61,16 @@ export default function AnalysisContent({ agent }: { agent: AgentAnalysis }) {
     );
   }
 
+  if (agent.status === 'skipped') {
+    return (
+      <div className="bg-gray-50 border border-border rounded-lg p-6 text-center">
+        <div className="text-3xl mb-3 grayscale">⏭️</div>
+        <h3 className="text-text-muted font-semibold mb-2">Agent Skipped</h3>
+        <p className="text-text-muted text-sm">{agent.skippedReason || 'This agent was not relevant for this company and was skipped by the Manager Agent.'}</p>
+      </div>
+    );
+  }
+
   if (agent.status === 'pending' || agent.status === 'running') {
     return (
       <div className="space-y-4 animate-pulse-slow">

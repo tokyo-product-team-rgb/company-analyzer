@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AgentRole } from '@/lib/types';
 import { getAnalysis, saveAnalysis } from '@/lib/storage';
-import { runAgent, generateGapQuestions } from '@/lib/ai';
+import { runAgent, runManagerAgent, generateGapQuestions } from '@/lib/ai';
 import { enrichCompany } from '@/lib/web-search';
 
 export const maxDuration = 300;
@@ -65,10 +65,50 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       webContext = 'Web search unavailable.';
     }
     analysis.webEnrichment = webContext;
+
+    // Step 2: Run Manager Agent for triage
+    analysis.currentStep = 'Manager agent triaging specialists...';
+    const managerIdx = analysis.agents.findIndex(a => a.role === 'manager');
+    if (managerIdx >= 0) analysis.agents[managerIdx].status = 'running';
+    await safeSave(analysis);
+
+    const managerDecision = await runManagerAgent(companyInfo, webContext);
+    analysis.managerDecision = managerDecision;
+
+    // Build set of selected roles from manager
+    const selectedRoles = new Set(managerDecision.selected.map(s => s.role));
+    const skippedMap = new Map(managerDecision.skipped.map(s => [s.role, s.reason]));
+
+    // Mark manager agent as complete
+    if (managerIdx >= 0) {
+      const selectedCount = managerDecision.selected.length;
+      const totalTriaged = selectedCount + managerDecision.skipped.length;
+      analysis.agents[managerIdx] = {
+        role: 'manager',
+        title: 'Manager Agent',
+        emoji: '🧠',
+        content: `# Agent Triage Decision\n\n**Selected ${selectedCount} of ${totalTriaged} specialist agents** for this company.\n\n## ✅ Selected Agents (${managerDecision.selected.length})\n${managerDecision.selected.map(s => `- **${s.role}**: ${s.reason}`).join('\n')}\n\n## ⏭️ Skipped Agents (${managerDecision.skipped.length})\n${managerDecision.skipped.map(s => `- **${s.role}**: ${s.reason}`).join('\n')}`,
+        status: 'complete',
+      };
+    }
+
+    // Mark skipped agents immediately
+    const scienceAndDealRoles: AgentRole[] = ['aerospace', 'nuclear', 'biology', 'ai_expert', 'mechanical', 'physics', 'legal', 'geopolitical', 'team', 'supply_chain', 'growth', 'cybersecurity', 'fund_fit'];
+    for (const role of scienceAndDealRoles) {
+      if (!selectedRoles.has(role)) {
+        const idx = analysis.agents.findIndex(a => a.role === role);
+        if (idx >= 0) {
+          analysis.agents[idx].status = 'skipped';
+          analysis.agents[idx].skippedReason = skippedMap.get(role) || 'Not relevant per manager triage';
+          analysis.agents[idx].content = '';
+        }
+      }
+    }
+
     analysis.currentStep = 'Running expert agents...';
     await safeSave(analysis);
 
-    // Step 2: Run 4 business agents in parallel
+    // Step 3: Run 4 business agents in parallel (always run)
     const businessRoles: AgentRole[] = ['researcher', 'strategist', 'sector', 'financial'];
 
     for (const role of businessRoles) {
@@ -90,9 +130,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       })
     );
 
-    // Step 3: Run 6 science agents in parallel
+    // Step 4: Run selected science agents in parallel
     analysis.currentStep = 'Running science expert agents...';
-    const scienceRoles: AgentRole[] = ['aerospace', 'nuclear', 'biology', 'ai_expert', 'mechanical', 'physics'];
+    const allScienceRoles: AgentRole[] = ['aerospace', 'nuclear', 'biology', 'ai_expert', 'mechanical', 'physics'];
+    const scienceRoles = allScienceRoles.filter(role => selectedRoles.has(role));
 
     for (const role of scienceRoles) {
       const idx = analysis.agents.findIndex(a => a.role === role);
@@ -106,16 +147,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         const idx = analysis.agents.findIndex(a => a.role === role);
         if (idx >= 0) analysis.agents[idx] = result;
         analysis.updatedAt = new Date().toISOString();
-        const doneCount = analysis.agents.filter(a => a.status === 'complete').length;
+        const doneCount = analysis.agents.filter(a => a.status === 'complete' || a.status === 'skipped').length;
         analysis.currentStep = `${doneCount}/${analysis.agents.length} agents complete`;
         await safeSave(analysis);
         return result;
       })
     );
 
-    // Step 4: Run 7 deal agents in parallel
+    // Step 5: Run selected deal agents in parallel
     analysis.currentStep = 'Running deal analysis agents...';
-    const dealRoles: AgentRole[] = ['legal', 'geopolitical', 'team', 'supply_chain', 'growth', 'cybersecurity', 'fund_fit'];
+    const allDealRoles: AgentRole[] = ['legal', 'geopolitical', 'team', 'supply_chain', 'growth', 'cybersecurity', 'fund_fit'];
+    const dealRoles = allDealRoles.filter(role => selectedRoles.has(role));
 
     for (const role of dealRoles) {
       const idx = analysis.agents.findIndex(a => a.role === role);
@@ -129,14 +171,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         const idx = analysis.agents.findIndex(a => a.role === role);
         if (idx >= 0) analysis.agents[idx] = result;
         analysis.updatedAt = new Date().toISOString();
-        const doneCount = analysis.agents.filter(a => a.status === 'complete').length;
+        const doneCount = analysis.agents.filter(a => a.status === 'complete' || a.status === 'skipped').length;
         analysis.currentStep = `${doneCount}/${analysis.agents.length} agents complete`;
         await safeSave(analysis);
         return result;
       })
     );
 
-    // Step 5: Executive summary (synthesizes ALL agents)
+    // Step 6: Executive summary (synthesizes ALL agents)
     analysis.currentStep = 'Writing executive summary...';
     const summaryIdx = analysis.agents.findIndex(a => a.role === 'summary');
     analysis.agents[summaryIdx].status = 'running';
@@ -152,7 +194,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     analysis.agents[summaryIdx] = summary;
     await safeSave(analysis);
 
-    // Step 6: Quality review
+    // Step 7: Quality review
     analysis.currentStep = 'Running quality review...';
     const qaIdx = analysis.agents.findIndex(a => a.role === 'qa');
     if (qaIdx >= 0) {
@@ -171,7 +213,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       await safeSave(analysis);
     }
 
-    // Step 7: Gap questions
+    // Step 8: Gap questions
     analysis.currentStep = 'Identifying knowledge gaps...';
     await safeSave(analysis);
 
@@ -180,7 +222,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     // Check if any agents errored — if most failed, mark overall as error
     const erroredAgents = analysis.agents.filter(a => a.status === 'error');
-    const completedAgents = analysis.agents.filter(a => a.status === 'complete');
+    const completedAgents = analysis.agents.filter(a => a.status === 'complete' || a.status === 'skipped');
 
     if (completedAgents.length === 0) {
       // All agents failed — mark as error
