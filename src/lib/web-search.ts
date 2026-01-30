@@ -42,13 +42,17 @@ export async function enrichCompany(companyName: string): Promise<string> {
     `${companyName} recent news 2024`,
   ];
 
+  // Run all searches in parallel
+  const searchResults = await Promise.all(
+    queries.map(q => searchWeb(q, 3).then(res => ({ query: q, ...res })))
+  );
+
   let enrichment = '## Web Research Results\n\n';
   let anyFromWeb = false;
 
-  for (const q of queries) {
-    const { results, fromWeb } = await searchWeb(q, 3);
+  for (const { query, results, fromWeb } of searchResults) {
     if (fromWeb) anyFromWeb = true;
-    enrichment += `### Search: "${q}"\n`;
+    enrichment += `### Search: "${query}"\n`;
     for (const r of results) {
       enrichment += `- **${r.title}**${r.url ? ` ([link](${r.url}))` : ''}: ${r.snippet}\n`;
     }

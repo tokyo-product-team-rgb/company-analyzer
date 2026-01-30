@@ -1,21 +1,13 @@
 import { NextResponse } from 'next/server';
-import { getIndex, getAnalysis, saveIndex } from '@/lib/storage';
+import { getIndex } from '@/lib/storage';
 
 export async function GET() {
+  // Return the index directly — status syncing is handled by the
+  // individual analysis GET endpoint (stale detection) and the
+  // process endpoint (final save updates index).
+  // This avoids N+1 blob fetches that made the library page slow.
   const index = await getIndex();
-  
-  // Sync statuses from actual analysis data
-  let changed = false;
-  for (const entry of index.analyses) {
-    const analysis = await getAnalysis(entry.id);
-    if (analysis && analysis.status !== entry.status) {
-      entry.status = analysis.status;
-      changed = true;
-    }
-  }
-  if (changed) {
-    await saveIndex(index);
-  }
-  
-  return NextResponse.json(index);
+  return NextResponse.json(index, {
+    headers: { 'Cache-Control': 's-maxage=5, stale-while-revalidate=30' },
+  });
 }

@@ -26,6 +26,7 @@ export interface Analysis {
   updatedAt: string;
   status: 'processing' | 'complete' | 'error';
   currentStep?: string;
+  processStartedAt?: string; // tracks when processing actually began
   agents: AgentAnalysis[];
   gapQuestions: GapQuestion[];
   webEnrichment?: string;

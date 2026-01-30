@@ -61,8 +61,14 @@ export default function AnalysisPage() {
         const hasRunning = data.agents?.some((a: { status: string }) => a.status === 'running');
         const hasComplete = data.agents?.some((a: { status: string }) => a.status === 'complete');
         if (!hasRunning && !hasComplete) {
-          processTriggered.current = true;
-          fetch(`/api/analysis/${id}/process`, { method: 'POST' }).catch(console.error);
+          // Only trigger if not recently started by another tab/request
+          const processAge = data.processStartedAt
+            ? Date.now() - new Date(data.processStartedAt).getTime()
+            : Infinity;
+          if (processAge > 30_000 || !data.processStartedAt) {
+            processTriggered.current = true;
+            fetch(`/api/analysis/${id}/process`, { method: 'POST' }).catch(console.error);
+          }
         }
       }
 

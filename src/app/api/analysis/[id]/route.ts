@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAnalysis, deleteAnalysis } from '@/lib/storage';
+import { getAnalysis, saveAnalysis, deleteAnalysis } from '@/lib/storage';
+
+const STALE_THRESHOLD = 8 * 60 * 1000; // 8 minutes
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -8,18 +10,36 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Analysis not found' }, { status: 404 });
   }
 
+  // Detect stale processing — mark as error if stuck too long
+  if (analysis.status === 'processing' && analysis.processStartedAt) {
+    const elapsed = Date.now() - new Date(analysis.processStartedAt).getTime();
+    if (elapsed > STALE_THRESHOLD) {
+      analysis.status = 'error';
+      analysis.currentStep = 'Analysis timed out. Please try again.';
+      analysis.processStartedAt = undefined;
+      // Reset any running agents
+      for (const agent of analysis.agents) {
+        if (agent.status === 'running') {
+          agent.status = 'error';
+          agent.error = 'Timed out';
+        }
+      }
+      await saveAnalysis(analysis, true);
+    }
+  }
+
   const headers: Record<string, string> = {};
 
   if (analysis.status === 'complete') {
-    // Completed analyses are immutable (unless deepened, which creates new state).
-    // Cache aggressively: 60s on CDN, stale-while-revalidate for 5 min.
     headers['Cache-Control'] = 's-maxage=60, stale-while-revalidate=300';
   } else {
-    // Processing/error — don't cache
     headers['Cache-Control'] = 'no-store';
   }
 
-  return NextResponse.json(analysis, { headers });
+  // Strip inputFull from response to reduce payload (it's only needed for processing)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { inputFull, ...responseData } = analysis;
+  return NextResponse.json(responseData, { headers });
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {

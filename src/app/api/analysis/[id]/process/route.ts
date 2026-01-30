@@ -31,7 +31,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const hasRunning = analysis.agents.some(a => a.status === 'running');
   const hasComplete = analysis.agents.some(a => a.status === 'complete');
   if (hasRunning || hasComplete) {
-    return NextResponse.json({ status: 'already-processing' });
+    // Check for stale processing — if started >8 min ago, allow retry
+    const staleThreshold = 8 * 60 * 1000;
+    const startedAt = analysis.processStartedAt ? new Date(analysis.processStartedAt).getTime() : 0;
+    const isStale = startedAt > 0 && (Date.now() - startedAt > staleThreshold);
+    if (!isStale) {
+      return NextResponse.json({ status: 'already-processing' });
+    }
+    // Reset stale agents
+    for (const agent of analysis.agents) {
+      if (agent.status === 'running') {
+        agent.status = 'pending';
+        agent.content = '';
+      }
+    }
   }
 
   try {
@@ -41,6 +54,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // Step 1: Web enrichment
     analysis.currentStep = 'Searching the web for company data...';
     analysis.status = 'processing';
+    analysis.processStartedAt = new Date().toISOString();
     await safeSave(analysis);
 
     let webContext = '';
@@ -101,7 +115,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     // Done! Final save WITH index update
     analysis.status = 'complete';
     analysis.currentStep = undefined;
+    analysis.processStartedAt = undefined;
     analysis.updatedAt = new Date().toISOString();
+    // Strip inputFull from blob — no longer needed after processing
+    delete analysis.inputFull;
     await saveAnalysis(analysis, true); // true = update index
 
     return NextResponse.json({ status: 'complete' });
