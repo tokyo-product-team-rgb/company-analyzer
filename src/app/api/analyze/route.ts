@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
       status: 'processing',
       currentStep: 'Queued — starting analysis...',
       agents: [
-        { role: 'researcher', title: 'PhD Researcher', emoji: '🎓', content: '', status: 'pending' },
+        { role: 'researcher', title: 'PhD Polymath Researcher', emoji: '🎓', content: '', status: 'pending' },
         { role: 'strategist', title: 'McKinsey Strategist', emoji: '📊', content: '', status: 'pending' },
         { role: 'sector', title: 'Sector Expert', emoji: '🏭', content: '', status: 'pending' },
         { role: 'financial', title: 'Financial Analyst', emoji: '💰', content: '', status: 'pending' },

@@ -8,7 +8,7 @@ import GapAnalysis from '@/components/GapAnalysis';
 
 const TAB_ORDER: { role: AgentRole; emoji: string; label: string; description: string }[] = [
   { role: 'summary', emoji: '📋', label: 'Executive Summary', description: 'Synthesizing all agent findings into a unified overview' },
-  { role: 'researcher', emoji: '🎓', label: 'PhD Researcher', description: 'Conducting academic analysis with citations and methodology' },
+  { role: 'researcher', emoji: '🎓', label: 'PhD Polymath', description: 'Multi-disciplinary scientific analysis across all relevant domains' },
   { role: 'strategist', emoji: '📊', label: 'McKinsey Strategist', description: 'Applying Porter\'s Five Forces, SWOT, TAM/SAM frameworks' },
   { role: 'sector', emoji: '🏭', label: 'Sector Expert', description: 'Deep-diving into industry trends, benchmarks, and regulations' },
   { role: 'financial', emoji: '💰', label: 'Financial Analyst', description: 'Evaluating unit economics, margins, and valuation comps' },
