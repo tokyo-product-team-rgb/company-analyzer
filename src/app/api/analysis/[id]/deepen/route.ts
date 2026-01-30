@@ -113,7 +113,7 @@ async function deepenAnalysis(
       analysis.gapQuestions = gapQuestions;
       analysis.webEnrichment = webContext;
       analysis.status = 'complete';
-      analysis.currentStep = null;
+      analysis.currentStep = undefined;
       analysis.updatedAt = new Date().toISOString();
       await saveAnalysis(analysis);
     }

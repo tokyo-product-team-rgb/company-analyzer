@@ -1,27 +1,31 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import Anthropic from '@anthropic-ai/sdk';
 import { AgentRole, AgentAnalysis, GapQuestion } from './types';
 import { AGENT_CONFIG, getGapAnalysisPrompt } from './agents';
 
-function getClient(): GoogleGenerativeAI | null {
-  const key = process.env.GEMINI_API_KEY;
-  console.log('GEMINI_API_KEY present:', !!key, 'length:', key?.length || 0);
+function getClient(): Anthropic | null {
+  const key = process.env.ANTHROPIC_API_KEY;
+  console.log('ANTHROPIC_API_KEY present:', !!key, 'length:', key?.length || 0);
   if (!key || key.trim().length === 0) return null;
-  return new GoogleGenerativeAI(key.trim());
+  return new Anthropic({ apiKey: key.trim() });
 }
 
-async function callGemini(systemPrompt: string, userPrompt: string): Promise<string> {
+async function callClaude(systemPrompt: string, userPrompt: string): Promise<string> {
   const client = getClient();
   if (!client) {
-    return `⚠️ **AI Analysis Unavailable**\n\nNo GEMINI_API_KEY configured. Add it to your Vercel environment variables to enable AI-powered analysis.\n\nTo set up:\n1. Get an API key from [aistudio.google.com](https://aistudio.google.com/apikey)\n2. Add \`GEMINI_API_KEY\` to your Vercel project environment variables\n3. Redeploy\n\n---\n*This is a placeholder. Real analysis will include detailed, multi-section expert output.*`;
+    throw new Error('No ANTHROPIC_API_KEY configured. Add it to your Vercel environment variables.');
   }
 
-  const model = client.getGenerativeModel({
-    model: 'gemini-2.5-pro',
-    systemInstruction: systemPrompt,
+  const message = await client.messages.create({
+    model: 'claude-sonnet-4-20250514',
+    max_tokens: 4096,
+    system: systemPrompt,
+    messages: [
+      { role: 'user', content: userPrompt },
+    ],
   });
 
-  const result = await model.generateContent(userPrompt);
-  return result.response.text();
+  const textBlocks = message.content.filter(b => b.type === 'text');
+  return textBlocks.map(b => b.text).join('\n');
 }
 
 export async function runAgent(role: AgentRole, companyInfo: string, webContext: string, otherAnalyses?: string): Promise<AgentAnalysis> {
@@ -33,7 +37,7 @@ export async function runAgent(role: AgentRole, companyInfo: string, webContext:
   }
 
   try {
-    const content = await callGemini(config.systemPrompt, userPrompt);
+    const content = await callClaude(config.systemPrompt, userPrompt);
     return {
       role,
       title: config.title,
@@ -56,7 +60,7 @@ export async function runAgent(role: AgentRole, companyInfo: string, webContext:
 
 export async function generateGapQuestions(companyInfo: string, analyses: string): Promise<GapQuestion[]> {
   try {
-    const raw = await callGemini(
+    const raw = await callClaude(
       getGapAnalysisPrompt(),
       `Company info:\n${companyInfo}\n\nAnalyses so far:\n${analyses}`
     );
